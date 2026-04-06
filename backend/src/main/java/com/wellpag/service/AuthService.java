@@ -58,10 +58,11 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.email(), request.senha())
+            new UsernamePasswordAuthenticationToken(request.login(), request.senha())
         );
 
-        Usuario usuario = usuarioRepository.findByEmail(request.email())
+        Usuario usuario = usuarioRepository.findByUsername(request.login())
+            .or(() -> usuarioRepository.findByEmail(request.login()))
             .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
         String token = jwtService.generate(usuario);

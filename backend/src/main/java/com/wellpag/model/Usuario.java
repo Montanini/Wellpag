@@ -12,7 +12,10 @@ public class Usuario {
     @Id
     private String id;
 
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
+    private String username;
+
+    @Indexed(unique = true, sparse = true)
     private String email;
 
     private String nome;

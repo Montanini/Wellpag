@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ export default function LoginPage() {
     setErro("");
     setLoading(true);
     try {
-      const data = await api.post<AuthUser>("/auth/login", { email, senha });
+      const data = await api.post<AuthUser>("/auth/login", { login, senha });
       saveAuth(data);
       router.push(data.role === "ALUNO" ? "/portal" : "/dashboard");
     } catch (err: any) {
@@ -43,14 +43,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Usuário ou e-mail</label>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="seu@email.com"
+                placeholder="usuário ou seu@email.com"
               />
             </div>
 
