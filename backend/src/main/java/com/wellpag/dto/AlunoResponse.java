@@ -11,6 +11,7 @@ public record AlunoResponse(
     String telefone,
     String nomeResponsavel,
     String telefoneResponsavel,
+    String cpfPagador,
     Double valorMensalidade,
     Integer diaVencimento,
     LocalDateTime dataCadastro
@@ -23,6 +24,7 @@ public record AlunoResponse(
             aluno.getTelefone(),
             aluno.getNomeResponsavel(),
             aluno.getTelefoneResponsavel(),
+            aluno.getCpfPagador(),
             aluno.getValorMensalidade(),
             aluno.getDiaVencimento(),
             aluno.getDataCadastro()

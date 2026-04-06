@@ -33,16 +33,20 @@ public class AlunoService {
         aluno.setTelefone(request.telefone());
         aluno.setNomeResponsavel(request.nomeResponsavel());
         aluno.setTelefoneResponsavel(request.telefoneResponsavel());
+        aluno.setCpfPagador(sanitizarCpf(request.cpfPagador()));
         aluno.setProfessorId(request.professorId());
 
         return AlunoResponse.from(alunoRepository.save(aluno));
     }
 
-    /** Professor complementa o aluno com mensalidade e vencimento. */
+    /** Professor complementa o aluno com mensalidade, vencimento e CPF do pagador PIX. */
     public AlunoResponse complementar(String alunoId, String professorId, AlunoComplementoRequest request) {
         Aluno aluno = buscarAlunoDoProfessor(alunoId, professorId);
         aluno.setValorMensalidade(request.valorMensalidade());
         aluno.setDiaVencimento(request.diaVencimento());
+        if (request.cpfPagador() != null) {
+            aluno.setCpfPagador(sanitizarCpf(request.cpfPagador()));
+        }
         return AlunoResponse.from(alunoRepository.save(aluno));
     }
 
@@ -65,5 +69,11 @@ public class AlunoService {
     private Aluno buscarAlunoDoProfessor(String alunoId, String professorId) {
         return alunoRepository.findByIdAndProfessorId(alunoId, professorId)
             .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
+    }
+
+    /** Remove pontos e traços do CPF para padronizar a busca. */
+    private String sanitizarCpf(String cpf) {
+        if (cpf == null || cpf.isBlank()) return null;
+        return cpf.replaceAll("[^0-9]", "");
     }
 }

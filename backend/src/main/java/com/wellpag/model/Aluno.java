@@ -25,6 +25,13 @@ public class Aluno {
     /** ID do professor responsável por este aluno. */
     private String professorId;
 
+    /**
+     * CPF do titular da conta que faz o PIX.
+     * Usado para vincular automaticamente o pagamento à mensalidade do aluno.
+     * Pode ser diferente do CPF do aluno (ex: pai paga pelo CPF dele).
+     */
+    private String cpfPagador;
+
     /** Valor padrão da mensalidade definido pelo professor. */
     private Double valorMensalidade;
 

@@ -1,9 +1,14 @@
 package com.wellpag.service;
 
+import com.wellpag.model.Aluno;
 import com.wellpag.model.BancoIntegracao;
+import com.wellpag.model.Mensalidade;
 import com.wellpag.model.NotificacaoPagamento;
+import com.wellpag.model.StatusMensalidade;
 import com.wellpag.model.StatusNotificacao;
 import com.wellpag.model.Usuario;
+import com.wellpag.repository.AlunoRepository;
+import com.wellpag.repository.MensalidadeRepository;
 import com.wellpag.repository.NotificacaoRepository;
 import com.wellpag.repository.UsuarioRepository;
 import com.wellpag.webhook.BancoParser;
@@ -23,6 +28,8 @@ public class WebhookService {
 
     private final UsuarioRepository usuarioRepository;
     private final NotificacaoRepository notificacaoRepository;
+    private final AlunoRepository alunoRepository;
+    private final MensalidadeRepository mensalidadeRepository;
     private final List<BancoParser> parsers;
 
     /** Mapa banco → parser, construído na inicialização. */
@@ -62,6 +69,44 @@ public class WebhookService {
 
         notificacaoRepository.save(notificacao);
         log.info("Notificação salva para professor={} banco={} valor={}", professor.getId(), banco, extraido.valor());
+
+        tentarVincularAutomaticamente(notificacao, professor.getId(), extraido.documentoPagador());
+    }
+
+    /**
+     * Tenta vincular automaticamente a notificação a um aluno pelo CPF do pagador.
+     * Se encontrar o aluno e uma mensalidade pendente, confirma o pagamento.
+     * Caso contrário, deixa como PENDENTE para o professor dar baixa manualmente.
+     */
+    private void tentarVincularAutomaticamente(NotificacaoPagamento notificacao,
+                                               String professorId,
+                                               String documentoPagador) {
+        if (documentoPagador == null || documentoPagador.isBlank()) return;
+
+        String cpfNormalizado = documentoPagador.replaceAll("[^0-9]", "");
+
+        alunoRepository.findByProfessorIdAndCpfPagador(professorId, cpfNormalizado).ifPresent(aluno -> {
+            mensalidadeRepository.findByAlunoId(aluno.getId()).stream()
+                .filter(m -> m.getStatus() != StatusMensalidade.PAGO)
+                .min((a, b) -> a.getMesReferencia().compareTo(b.getMesReferencia()))
+                .ifPresent(mensalidade -> {
+                    mensalidade.setStatus(StatusMensalidade.PAGO);
+                    mensalidade.setDataPagamento(
+                        notificacao.getDataTransacao() != null
+                            ? notificacao.getDataTransacao().toLocalDate()
+                            : java.time.LocalDate.now()
+                    );
+                    mensalidadeRepository.save(mensalidade);
+
+                    notificacao.setStatus(StatusNotificacao.VINCULADA);
+                    notificacao.setAlunoId(aluno.getId());
+                    notificacao.setMensalidadeId(mensalidade.getId());
+                    notificacaoRepository.save(notificacao);
+
+                    log.info("Pagamento vinculado automaticamente: aluno={} mensalidade={} via CPF={}",
+                        aluno.getId(), mensalidade.getId(), cpfNormalizado);
+                });
+        });
     }
 
     private BancoIntegracao resolverBanco(String slug) {

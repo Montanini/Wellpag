@@ -18,5 +18,8 @@ public record AlunoComplementoRequest(
     @NotNull(message = "Dia de vencimento é obrigatório")
     @Min(value = 1, message = "Dia deve ser entre 1 e 28")
     @Max(value = 28, message = "Dia deve ser entre 1 e 28")
-    Integer diaVencimento
+    Integer diaVencimento,
+
+    /** CPF do pagador PIX — professor pode definir ou corrigir. */
+    String cpfPagador
 ) {}

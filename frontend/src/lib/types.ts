@@ -9,6 +9,7 @@ export interface Aluno {
   telefone?: string;
   nomeResponsavel?: string;
   telefoneResponsavel?: string;
+  cpfPagador?: string;
   valorMensalidade?: number;
   diaVencimento?: number;
   dataCadastro: string;

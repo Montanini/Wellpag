@@ -11,6 +11,7 @@ function AlunoAutoCadastroInner() {
   const [form, setForm] = useState({
     nome: "", email: "", telefone: "",
     nomeResponsavel: "", telefoneResponsavel: "",
+    cpfPagador: "",
   });
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
@@ -64,6 +65,7 @@ function AlunoAutoCadastroInner() {
               { field: "nome",               label: "Nome completo",        type: "text",  required: true,  placeholder: "João Silva" },
               { field: "email",              label: "E-mail",               type: "email", required: true,  placeholder: "seu@email.com" },
               { field: "telefone",           label: "Telefone / WhatsApp",  type: "tel",   required: false, placeholder: "(11) 99999-9999" },
+              { field: "cpfPagador",         label: "CPF do Pagador do PIX", type: "text", required: false, placeholder: "CPF de quem vai fazer o PIX (pode ser do responsável)" },
               { field: "nomeResponsavel",    label: "Nome do responsável",  type: "text",  required: false, placeholder: "Opcional (menores)" },
               { field: "telefoneResponsavel",label: "Telefone do responsável", type: "tel", required: false, placeholder: "(11) 99999-9999" },
             ].map(({ field, label, type, required, placeholder }) => (

@@ -20,6 +20,9 @@ public record AlunoAutoCadastroRequest(
     String nomeResponsavel,
     String telefoneResponsavel,
 
+    /** CPF de quem faz o PIX (pode ser do responsável). Usado para vincular pagamentos automaticamente. */
+    String cpfPagador,
+
     @NotBlank(message = "Código do professor é obrigatório")
     String professorId
 ) {}

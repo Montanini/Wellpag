@@ -12,4 +12,5 @@ public interface AlunoRepository extends MongoRepository<Aluno, String> {
     boolean existsByEmailAndProfessorId(String email, String professorId);
     List<Aluno> findByEmail(String email);
     List<Aluno> findByUsuarioId(String usuarioId);
+    Optional<Aluno> findByProfessorIdAndCpfPagador(String professorId, String cpfPagador);
 }

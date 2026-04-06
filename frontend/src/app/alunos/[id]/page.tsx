@@ -15,7 +15,7 @@ export default function AlunoDetalhePage() {
   const [mensalidades, setMensalidades] = useState<Mensalidade[]>([]);
   const [enviandoLembrete, setEnviandoLembrete] = useState(false);
   const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState({ valorMensalidade: "", diaVencimento: "" });
+  const [form, setForm] = useState({ valorMensalidade: "", diaVencimento: "", cpfPagador: "" });
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -31,6 +31,7 @@ export default function AlunoDetalhePage() {
         setForm({
           valorMensalidade: a.valorMensalidade?.toString() ?? "",
           diaVencimento:    a.diaVencimento?.toString() ?? "",
+          cpfPagador:       a.cpfPagador ?? "",
         });
       })
       .catch((err) => setErro(err.message))
@@ -44,6 +45,7 @@ export default function AlunoDetalhePage() {
       const atualizado = await api.patch<Aluno>(`/professor/alunos/${id}/complemento`, {
         valorMensalidade: parseFloat(form.valorMensalidade),
         diaVencimento:    parseInt(form.diaVencimento),
+        cpfPagador:       form.cpfPagador || null,
       });
       setAluno(atualizado);
       setEditando(false);
@@ -112,6 +114,10 @@ export default function AlunoDetalhePage() {
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div><dt className="text-gray-500">E-mail</dt><dd className="font-medium">{aluno.email}</dd></div>
             <div><dt className="text-gray-500">Telefone</dt><dd className="font-medium">{aluno.telefone ?? "—"}</dd></div>
+            <div>
+              <dt className="text-gray-500">CPF do Pagador PIX</dt>
+              <dd className="font-medium">{aluno.cpfPagador ?? <span className="text-yellow-600 text-xs">Não informado — PIX não será vinculado automaticamente</span>}</dd>
+            </div>
             {aluno.nomeResponsavel && (
               <div className="col-span-2">
                 <dt className="text-gray-500">Responsável</dt>
@@ -121,26 +127,39 @@ export default function AlunoDetalhePage() {
           </dl>
 
           {editando ? (
-            <form onSubmit={salvarComplemento} className="mt-4 flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Valor mensalidade (R$)</label>
+            <form onSubmit={salvarComplemento} className="mt-4 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Valor mensalidade (R$)</label>
+                  <input
+                    type="number" step="0.01" min="0" required
+                    value={form.valorMensalidade}
+                    onChange={(e) => setForm((f) => ({ ...f, valorMensalidade: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Dia de vencimento</label>
+                  <input
+                    type="number" min="1" max="28" required
+                    value={form.diaVencimento}
+                    onChange={(e) => setForm((f) => ({ ...f, diaVencimento: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">CPF do Pagador PIX</label>
                 <input
-                  type="number" step="0.01" min="0" required
-                  value={form.valorMensalidade}
-                  onChange={(e) => setForm((f) => ({ ...f, valorMensalidade: e.target.value }))}
+                  type="text"
+                  value={form.cpfPagador}
+                  onChange={(e) => setForm((f) => ({ ...f, cpfPagador: e.target.value }))}
+                  placeholder="CPF de quem faz o PIX (pode ser do responsável)"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
+                <p className="text-xs text-gray-400 mt-1">Se o aluno pagar por outro CPF, dê baixa manualmente nas notificações.</p>
               </div>
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Dia de vencimento</label>
-                <input
-                  type="number" min="1" max="28" required
-                  value={form.diaVencimento}
-                  onChange={(e) => setForm((f) => ({ ...f, diaVencimento: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-              <div className="flex items-end">
+              <div>
                 <button
                   type="submit" disabled={salvando}
                   className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
