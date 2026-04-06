@@ -40,8 +40,6 @@ jobs:
           JWT_SECRET: test-secret-minimo-256-bits-para-hmac-sha256-ok
           GOOGLE_CLIENT_ID: dummy
           GOOGLE_CLIENT_SECRET: dummy
-          GITHUB_CLIENT_ID: dummy
-          GITHUB_CLIENT_SECRET: dummy
           FRONTEND_URL: http://localhost:3000
           WEBHOOK_BASE_URL: http://localhost:8080
           EVOLUTION_API_URL: http://localhost:8081

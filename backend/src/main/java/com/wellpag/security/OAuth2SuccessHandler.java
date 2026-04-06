@@ -71,7 +71,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private String resolveEmail(OAuth2User user, String registrationId) {
         String email = user.getAttribute("email");
         if (email == null) {
-            throw new IllegalStateException("E-mail não retornado pelo provider " + registrationId);
+            throw new IllegalStateException("E-mail não retornado pelo Google");
         }
         return email;
     }
