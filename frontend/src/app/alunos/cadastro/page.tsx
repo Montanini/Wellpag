@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 
-export default function AlunoAutoCadastroPage() {
+function AlunoAutoCadastroInner() {
   const params = useSearchParams();
   const professorId = params.get("professor") ?? "";
 
@@ -95,5 +95,17 @@ export default function AlunoAutoCadastroPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AlunoAutoCadastroPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500 text-sm">Carregando...</p>
+      </div>
+    }>
+      <AlunoAutoCadastroInner />
+    </Suspense>
   );
 }
