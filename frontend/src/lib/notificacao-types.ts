@@ -20,3 +20,12 @@ export interface WebhookConfiguracaoResponse {
   token: string;
   urls: Record<string, string>;
 }
+
+export interface ConfiguracaoInterResponse {
+  clientId?: string;
+  chavePix?: string;
+  temCertificado: boolean;
+  temChavePrivada: boolean;
+  webhookRegistrado: boolean;
+  webhookUrl?: string;
+}

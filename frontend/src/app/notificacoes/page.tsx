@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { api } from "@/lib/api";
 import { Aluno, Mensalidade } from "@/lib/types";
 import {
+  ConfiguracaoInterResponse,
   NotificacaoResponse,
   StatusNotificacao,
   WebhookConfiguracaoResponse,
@@ -304,9 +305,15 @@ function ConfigModal({
   config: WebhookConfiguracaoResponse;
   onClose: () => void;
 }) {
+  const [interAberto, setInterAberto] = useState(false);
+
   async function copiar(url: string) {
     await navigator.clipboard.writeText(url);
     alert("URL copiada!");
+  }
+
+  if (interAberto) {
+    return <InterConfigModal onVoltar={() => setInterAberto(false)} onClose={onClose} />;
   }
 
   return (
@@ -318,20 +325,33 @@ function ConfigModal({
         </p>
 
         <div className="space-y-3">
-          {Object.entries(config.urls).map(([banco, url]) => (
-            <div key={banco} className="border border-gray-100 rounded-lg p-3">
-              <p className="text-xs font-medium text-gray-600 mb-1">{banco}</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-gray-50 rounded px-2 py-1 text-gray-700 truncate">{url}</code>
-                <button
-                  onClick={() => copiar(url)}
-                  className="text-xs text-brand-600 hover:underline shrink-0"
-                >
-                  Copiar
-                </button>
+          {Object.entries(config.urls).map(([banco, url]) => {
+            const isInter = banco.toLowerCase() === "inter";
+            return (
+              <div key={banco} className="border border-gray-100 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-medium text-gray-600">{banco}</p>
+                  {isInter && (
+                    <button
+                      onClick={() => setInterAberto(true)}
+                      className="text-xs text-brand-600 hover:underline"
+                    >
+                      Configurar credenciais
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-gray-50 rounded px-2 py-1 text-gray-700 truncate">{url}</code>
+                  <button
+                    onClick={() => copiar(url)}
+                    className="text-xs text-brand-600 hover:underline shrink-0"
+                  >
+                    Copiar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <p className="text-xs text-gray-400 mt-4">
@@ -344,6 +364,243 @@ function ConfigModal({
         >
           Fechar
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal de configuração Banco Inter ───
+
+function InterConfigModal({
+  onVoltar,
+  onClose,
+}: {
+  onVoltar: () => void;
+  onClose: () => void;
+}) {
+  const [dados, setDados] = useState<ConfiguracaoInterResponse | null>(null);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [chavePix, setChavePix] = useState("");
+  const certRef = useRef<HTMLInputElement>(null);
+  const keyRef  = useRef<HTMLInputElement>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [registrando, setRegistrando] = useState(false);
+  const [removendo, setRemovendo] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<ConfiguracaoInterResponse>("/professor/banco/inter").then((d) => {
+      setDados(d);
+      if (d.clientId) setClientId(d.clientId);
+      if (d.chavePix) setChavePix(d.chavePix);
+    }).catch(() => {});
+  }, []);
+
+  function feedback(msg: string, tipo: "sucesso" | "erro") {
+    if (tipo === "sucesso") { setSucesso(msg); setErro(null); }
+    else { setErro(msg); setSucesso(null); }
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    setErro(null);
+    setSucesso(null);
+    try {
+      const form = new FormData();
+      if (clientId)     form.append("clientId",     clientId);
+      if (clientSecret) form.append("clientSecret", clientSecret);
+      if (chavePix)     form.append("chavePix",     chavePix);
+      if (certRef.current?.files?.[0]) form.append("certificado",  certRef.current.files[0]);
+      if (keyRef.current?.files?.[0])  form.append("chavePrivada", keyRef.current.files[0]);
+
+      const atualizado = await api.postForm<ConfiguracaoInterResponse>("/professor/banco/inter", form);
+      setDados(atualizado);
+      setClientSecret("");
+      feedback("Credenciais salvas com sucesso.", "sucesso");
+    } catch (e: unknown) {
+      feedback(e instanceof Error ? e.message : "Erro ao salvar.", "erro");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function registrarWebhook() {
+    setRegistrando(true);
+    setErro(null);
+    setSucesso(null);
+    try {
+      const atualizado = await api.post<ConfiguracaoInterResponse>(
+        "/professor/banco/inter/registrar-webhook", {}
+      );
+      setDados(atualizado);
+      feedback("Webhook registrado no Inter com sucesso.", "sucesso");
+    } catch (e: unknown) {
+      feedback(e instanceof Error ? e.message : "Erro ao registrar webhook.", "erro");
+    } finally {
+      setRegistrando(false);
+    }
+  }
+
+  async function removerWebhook() {
+    if (!confirm("Remover o webhook do Banco Inter?")) return;
+    setRemovendo(true);
+    setErro(null);
+    setSucesso(null);
+    try {
+      await api.delete("/professor/banco/inter/webhook");
+      setDados((prev) => prev ? { ...prev, webhookRegistrado: false, webhookUrl: undefined } : prev);
+      feedback("Webhook removido.", "sucesso");
+    } catch (e: unknown) {
+      feedback(e instanceof Error ? e.message : "Erro ao remover webhook.", "erro");
+    } finally {
+      setRemovendo(false);
+    }
+  }
+
+  const credenciaisCompletas = dados?.temCertificado && dados?.temChavePrivada
+    && !!dados?.clientId && !!dados?.chavePix;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center gap-2 mb-4">
+          <button onClick={onVoltar} className="text-gray-400 hover:text-gray-600 text-sm">← Voltar</button>
+          <h2 className="font-semibold text-lg">Banco Inter — Configuração PIX</h2>
+        </div>
+
+        <p className="text-xs text-gray-500 mb-4">
+          Para integração automática via API, o Inter exige autenticação mTLS com certificado digital
+          e as credenciais OAuth2 geradas no portal Inter Empresas.
+        </p>
+
+        {erro    && <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erro}</div>}
+        {sucesso && <div className="mb-3 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">{sucesso}</div>}
+
+        <div className="space-y-4">
+          {/* Credenciais OAuth2 */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-2">Credenciais OAuth2</p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Client ID</label>
+                <input
+                  type="text"
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="Gerado no portal Inter Empresas"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Client Secret</label>
+                <input
+                  type="password"
+                  value={clientSecret}
+                  onChange={(e) => setClientSecret(e.target.value)}
+                  placeholder={dados?.clientId ? "Deixe em branco para manter o atual" : "Gerado no portal Inter Empresas"}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Chave PIX cadastrada no Inter</label>
+                <input
+                  type="text"
+                  value={chavePix}
+                  onChange={(e) => setChavePix(e.target.value)}
+                  placeholder="CPF, CNPJ, e-mail, telefone ou aleatória"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Certificados mTLS */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-2">Certificados mTLS</p>
+            <p className="text-xs text-gray-400 mb-2">
+              Baixe o certificado e a chave privada no portal Inter Empresas → API → Credenciais.
+            </p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Certificado (.crt / .pem){" "}
+                  {dados?.temCertificado && (
+                    <span className="text-green-600 font-medium">✓ já enviado</span>
+                  )}
+                </label>
+                <input
+                  ref={certRef}
+                  type="file"
+                  accept=".crt,.pem,.cer"
+                  className="w-full text-xs text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Chave privada (.key){" "}
+                  {dados?.temChavePrivada && (
+                    <span className="text-green-600 font-medium">✓ já enviada</span>
+                  )}
+                </label>
+                <input
+                  ref={keyRef}
+                  type="file"
+                  accept=".key,.pem"
+                  className="w-full text-xs text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Status do webhook */}
+          {dados?.webhookRegistrado && dados.webhookUrl && (
+            <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <p className="text-xs font-medium text-green-700 mb-0.5">Webhook ativo</p>
+              <code className="text-xs text-green-600 break-all">{dados.webhookUrl}</code>
+            </div>
+          )}
+        </div>
+
+        {/* Ações */}
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            onClick={salvar}
+            disabled={salvando}
+            className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+          >
+            {salvando ? "Salvando..." : "Salvar credenciais"}
+          </button>
+
+          {!dados?.webhookRegistrado && (
+            <button
+              onClick={registrarWebhook}
+              disabled={registrando || !credenciaisCompletas}
+              title={!credenciaisCompletas ? "Salve todas as credenciais e certificados primeiro" : undefined}
+              className="w-full border border-brand-200 text-brand-600 hover:bg-brand-50 disabled:opacity-40 text-sm font-medium py-2 rounded-lg transition-colors"
+            >
+              {registrando ? "Registrando..." : "Registrar webhook no Inter"}
+            </button>
+          )}
+
+          {dados?.webhookRegistrado && (
+            <button
+              onClick={removerWebhook}
+              disabled={removendo}
+              className="w-full border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 text-sm py-2 rounded-lg transition-colors"
+            >
+              {removendo ? "Removendo..." : "Remover webhook"}
+            </button>
+          )}
+
+          <button
+            onClick={onClose}
+            className="w-full border border-gray-200 text-gray-500 text-sm py-2 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Fechar
+          </button>
+        </div>
       </div>
     </div>
   );
