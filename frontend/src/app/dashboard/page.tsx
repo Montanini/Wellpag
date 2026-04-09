@@ -16,10 +16,10 @@ const DIAS: { value: DiaSemana; label: string }[] = [
   { value: "DOMINGO", label: "Domingo" },
 ];
 
-const COR_STATUS: Record<string, string> = {
-  PAGO:     "bg-[#7ec920] hover:bg-[#6db81a]",
-  A_PAGAR:  "bg-yellow-400 hover:bg-yellow-500",
-  ATRASADO: "bg-red-500 hover:bg-red-600",
+const ESTILO_STATUS: Record<string, { bg: string; border: string; text: string }> = {
+  PAGO:     { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
+  A_PAGAR:  { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700" },
+  ATRASADO: { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700"    },
 };
 
 function agruparPorHorario(alunos: DashboardAlunoItem[]) {
@@ -123,21 +123,24 @@ export default function DashboardPage() {
 
                 {/* Grid de cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {grupoAlunos.map((aluno) => (
-                    <button
-                      key={aluno.alunoId}
-                      onClick={() => router.push(`/alunos/${aluno.alunoId}`)}
-                      className={`
-                        ${COR_STATUS[aluno.statusMensalidade] ?? "bg-gray-400 hover:bg-gray-500"}
-                        rounded-2xl px-4 py-6
-                        text-white font-semibold text-sm text-center
-                        shadow-sm transition-colors duration-150 cursor-pointer
-                        min-h-[90px] flex items-center justify-center
-                      `}
-                    >
-                      {aluno.nome}
-                    </button>
-                  ))}
+                  {grupoAlunos.map((aluno) => {
+                    const estilo = ESTILO_STATUS[aluno.statusMensalidade] ?? { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-700" };
+                    return (
+                      <button
+                        key={aluno.alunoId}
+                        onClick={() => router.push(`/alunos/${aluno.alunoId}`)}
+                        className={`
+                          ${estilo.bg} ${estilo.border} ${estilo.text}
+                          rounded-xl p-4 text-center border
+                          font-semibold text-sm
+                          hover:brightness-95 transition-all duration-150 cursor-pointer
+                          min-h-[80px] flex items-center justify-center
+                        `}
+                      >
+                        {aluno.nome}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
