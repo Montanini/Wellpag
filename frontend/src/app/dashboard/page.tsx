@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import { DashboardAlunoItem, DiaSemana } from "@/lib/types";
 
@@ -16,7 +16,24 @@ const DIAS: { value: DiaSemana; label: string }[] = [
   { value: "DOMINGO", label: "Domingo" },
 ];
 
+const COR_STATUS: Record<string, string> = {
+  PAGO:     "bg-[#7ec920] hover:bg-[#6db81a]",
+  A_PAGAR:  "bg-yellow-400 hover:bg-yellow-500",
+  ATRASADO: "bg-red-500 hover:bg-red-600",
+};
+
+function agruparPorHorario(alunos: DashboardAlunoItem[]) {
+  const mapa = new Map<string, DashboardAlunoItem[]>();
+  for (const aluno of alunos) {
+    const chave = aluno.horaInicio.slice(0, 5);
+    if (!mapa.has(chave)) mapa.set(chave, []);
+    mapa.get(chave)!.push(aluno);
+  }
+  return Array.from(mapa.entries()).sort(([a], [b]) => a.localeCompare(b));
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [alunos, setAlunos] = useState<DashboardAlunoItem[]>([]);
   const [diaSemana, setDiaSemana] = useState<DiaSemana | "">("");
   const [loading, setLoading] = useState(true);
@@ -46,8 +63,10 @@ export default function DashboardPage() {
     atrasado: alunos.filter((a) => a.statusMensalidade === "ATRASADO").length,
   };
 
+  const grupos = agruparPorHorario(alunos);
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -67,7 +86,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Cards de resumo */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           {[
             { label: "Pagos",     count: totais.pago,     color: "text-green-600",  bg: "bg-green-50"  },
             { label: "A pagar",   count: totais.aPagar,   color: "text-yellow-600", bg: "bg-yellow-50" },
@@ -80,7 +99,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Tabela */}
+        {/* Cards de alunos agrupados por horário */}
         {loading ? (
           <div className="text-center py-16 text-gray-400 text-sm">Carregando...</div>
         ) : erro ? (
@@ -90,33 +109,38 @@ export default function DashboardPage() {
             Nenhum aluno neste horário.
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Aluno</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Horário</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Telefone</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Mensalidade</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {alunos.map((aluno) => (
-                  <tr key={aluno.alunoId} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{aluno.nome}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
-                      {aluno.horaInicio.slice(0, 5)} – {aluno.horaFim.slice(0, 5)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
-                      {aluno.telefone ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={aluno.statusMensalidade} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-8">
+            {grupos.map(([horaInicio, grupoAlunos]) => (
+              <div key={horaInicio}>
+                {/* Separador com horário */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">
+                    Horário ({horaInicio})
+                  </span>
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
+
+                {/* Grid de cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {grupoAlunos.map((aluno) => (
+                    <button
+                      key={aluno.alunoId}
+                      onClick={() => router.push(`/alunos/${aluno.alunoId}`)}
+                      className={`
+                        ${COR_STATUS[aluno.statusMensalidade] ?? "bg-gray-400 hover:bg-gray-500"}
+                        rounded-2xl px-4 py-6
+                        text-white font-semibold text-sm text-center
+                        shadow-sm transition-colors duration-150 cursor-pointer
+                        min-h-[90px] flex items-center justify-center
+                      `}
+                    >
+                      {aluno.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
