@@ -1,5 +1,6 @@
 package com.wellpag.service;
 
+import com.wellpag.dto.AlterarStatusMensalidadeRequest;
 import com.wellpag.dto.ConfirmarPagamentoRequest;
 import com.wellpag.dto.MensalidadeResponse;
 import com.wellpag.model.Aluno;
@@ -48,6 +49,21 @@ public class MensalidadeService {
             .stream()
             .map(m -> MensalidadeResponse.from(recalcularStatus(m)))
             .toList();
+    }
+
+    /** Professor altera o status manualmente. */
+    public MensalidadeResponse alterarStatus(String mensalidadeId, String professorId,
+                                              AlterarStatusMensalidadeRequest request) {
+        Mensalidade m = mensalidadeRepository.findById(mensalidadeId)
+            .filter(mens -> mens.getProfessorId().equals(professorId))
+            .orElseThrow(() -> new IllegalArgumentException("Mensalidade não encontrada"));
+
+        m.setStatus(request.status());
+        if (request.status() != StatusMensalidade.PAGO) {
+            m.setDataPagamento(null);
+        }
+
+        return MensalidadeResponse.from(mensalidadeRepository.save(m));
     }
 
     /** Professor confirma o recebimento. */
