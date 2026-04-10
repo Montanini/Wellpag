@@ -1,5 +1,6 @@
 package com.wellpag.controller;
 
+import com.wellpag.dto.AlterarStatusMensalidadeRequest;
 import com.wellpag.dto.ConfirmarPagamentoRequest;
 import com.wellpag.dto.MensalidadeResponse;
 import com.wellpag.service.MensalidadeService;
@@ -43,6 +44,14 @@ public class MensalidadeController {
                                               @PathVariable String mes,
                                               @AuthenticationPrincipal String professorId) {
         return mensalidadeService.buscarOuCriar(alunoId, professorId, YearMonth.parse(mes));
+    }
+
+    @PatchMapping("/{mensalidadeId}/status")
+    @Operation(summary = "Alterar status de uma mensalidade manualmente")
+    public MensalidadeResponse alterarStatus(@PathVariable String mensalidadeId,
+                                              @AuthenticationPrincipal String professorId,
+                                              @Valid @RequestBody AlterarStatusMensalidadeRequest request) {
+        return mensalidadeService.alterarStatus(mensalidadeId, professorId, request);
     }
 
     @PatchMapping("/{mensalidadeId}/confirmar")
