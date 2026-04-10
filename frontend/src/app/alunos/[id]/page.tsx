@@ -20,6 +20,8 @@ export default function AlunoDetalhePage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [alterandoStatusId, setAlterandoStatusId] = useState<string | null>(null);
+  const [mostrarAlterarStatus, setMostrarAlterarStatus] = useState(false);
+  const [alterandoStatusGlobal, setAlterandoStatusGlobal] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -66,6 +68,30 @@ export default function AlunoDetalhePage() {
       alert(err.message ?? "Erro ao enviar lembrete");
     } finally {
       setEnviandoLembrete(false);
+    }
+  }
+
+  async function alterarStatusMesAtual(status: string) {
+    setAlterandoStatusGlobal(true);
+    try {
+      const mesAtual = new Date().toISOString().slice(0, 7); // yyyy-MM
+      const mensalidade = await api.get<Mensalidade>(
+        `/professor/mensalidades/aluno/${id}/mes/${mesAtual}`
+      );
+      const atualizada = await api.patch<Mensalidade>(
+        `/professor/mensalidades/${mensalidade.id}/status`,
+        { status }
+      );
+      setMensalidades((prev) => {
+        const exists = prev.some((m) => m.id === atualizada.id);
+        if (exists) return prev.map((m) => m.id === atualizada.id ? atualizada : m);
+        return [atualizada, ...prev];
+      });
+      setMostrarAlterarStatus(false);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAlterandoStatusGlobal(false);
     }
   }
 
@@ -192,6 +218,51 @@ export default function AlunoDetalhePage() {
           )}
         </div>
 
+        {/* Ações rápidas */}
+        <div className="space-y-2">
+          <div className="flex gap-3">
+            <button
+              onClick={enviarLembrete}
+              disabled={enviandoLembrete}
+              className="text-sm text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            >
+              {enviandoLembrete ? "Enviando..." : "Enviar lembrete"}
+            </button>
+            <button
+              onClick={() => setMostrarAlterarStatus(!mostrarAlterarStatus)}
+              className="text-sm text-green-700 border border-green-300 bg-green-50 hover:bg-green-100 rounded-lg px-4 py-2 transition-colors font-medium"
+            >
+              Alterar status
+            </button>
+          </div>
+
+          {mostrarAlterarStatus && (
+            <div className="flex gap-2 flex-wrap pl-1">
+              <p className="w-full text-xs text-gray-500 mb-1">Alterar status do mês atual:</p>
+              {(["PAGO", "A_PAGAR", "ATRASADO"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => alterarStatusMesAtual(s)}
+                  disabled={alterandoStatusGlobal}
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-50
+                    ${s === "PAGO"     ? "bg-green-50  border-green-200  text-green-700  hover:bg-green-100"  : ""}
+                    ${s === "A_PAGAR"  ? "bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100" : ""}
+                    ${s === "ATRASADO" ? "bg-red-50    border-red-200    text-red-700    hover:bg-red-100"    : ""}
+                  `}
+                >
+                  {alterandoStatusGlobal ? "..." : s === "PAGO" ? "Pago" : s === "A_PAGAR" ? "A pagar" : "Atrasado"}
+                </button>
+              ))}
+              <button
+                onClick={() => setMostrarAlterarStatus(false)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Histórico de mensalidades */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="font-semibold text-gray-800 mb-4">Mensalidades</h2>
@@ -250,16 +321,6 @@ export default function AlunoDetalhePage() {
             </div>
           )}
 
-          {/* Botão Enviar lembrete abaixo das mensalidades */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={enviarLembrete}
-              disabled={enviandoLembrete}
-              className="text-sm text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
-            >
-              {enviandoLembrete ? "Enviando..." : "Enviar lembrete"}
-            </button>
-          </div>
         </div>
       </main>
     </div>
