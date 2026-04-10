@@ -50,6 +50,35 @@ public class MensalidadeService {
             .toList();
     }
 
+    /**
+     * Gera mensalidades em lote para todos os alunos no mês informado.
+     * Ignora alunos que já possuem mensalidade para o mês.
+     */
+    public int gerarMensalidadesEmLote(YearMonth mes) {
+        String mesRef = mes.format(MES_FMT);
+        int criadas = 0;
+
+        for (Aluno aluno : alunoRepository.findAll()) {
+            boolean jaExiste = mensalidadeRepository
+                .findByAlunoIdAndMesReferencia(aluno.getId(), mesRef)
+                .isPresent();
+
+            if (!jaExiste) {
+                Mensalidade m = new Mensalidade();
+                m.setAlunoId(aluno.getId());
+                m.setProfessorId(aluno.getProfessorId());
+                m.setMesReferencia(mesRef);
+                m.setValor(aluno.getValorMensalidade());
+                m.setDiaVencimento(aluno.getDiaVencimento());
+                m.setStatus(calcularStatus(aluno.getDiaVencimento(), mes));
+                mensalidadeRepository.save(m);
+                criadas++;
+            }
+        }
+
+        return criadas;
+    }
+
     /** Professor confirma o recebimento. */
     public MensalidadeResponse confirmarPagamento(String mensalidadeId, String professorId,
                                                    ConfirmarPagamentoRequest request) {
