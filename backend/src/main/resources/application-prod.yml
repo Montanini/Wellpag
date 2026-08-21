@@ -1,0 +1,23 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado).
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+server:
+  port: ${SERVER_PORT:8082}
+
+wellpag:
+  jwt:
+    secret: ${JWT_SECRET}
+  frontend-url: ${FRONTEND_URL}
+  webhook:
+    base-url: ${WEBHOOK_BASE_URL}
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO

@@ -15,4 +15,3 @@ target/
 
 # Env
 .env
-application-local.yml

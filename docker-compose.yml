@@ -1,6 +1,6 @@
 version: '3.8'
 
-# Ambiente de desenvolvimento local
+# Infraestrutura compartilhada pelos profiles dev/teste/prod (Mongo + Evolution API)
 # Uso: docker compose up -d
 
 services:

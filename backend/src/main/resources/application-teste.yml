@@ -1,0 +1,22 @@
+# Ambiente de teste/homologação — roda na mesma máquina que dev e prod,
+# em porta e banco isolados. Valores fake, seguro versionar.
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_teste
+
+server:
+  port: 8090
+
+wellpag:
+  jwt:
+    secret: teste-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  webhook:
+    base-url: http://localhost:8090
+
+logging:
+  level:
+    root: INFO
+    com.wellpag: INFO

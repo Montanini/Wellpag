@@ -1,0 +1,22 @@
+# Ambiente de desenvolvimento local
+# Valores fake, seguro versionar — nenhuma credencial real aqui
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_dev
+
+server:
+  port: 8080
+
+wellpag:
+  jwt:
+    secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+  frontend-url: http://localhost:3000
+  webhook:
+    base-url: http://localhost:8080
+
+logging:
+  level:
+    root: INFO
+    com.wellpag: DEBUG
