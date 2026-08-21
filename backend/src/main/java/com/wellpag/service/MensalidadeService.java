@@ -1,5 +1,6 @@
 package com.wellpag.service;
 
+import com.wellpag.dto.AlterarStatusMensalidadeRequest;
 import com.wellpag.dto.ConfirmarPagamentoRequest;
 import com.wellpag.dto.MensalidadeResponse;
 import com.wellpag.model.Aluno;
@@ -48,6 +49,50 @@ public class MensalidadeService {
             .stream()
             .map(m -> MensalidadeResponse.from(recalcularStatus(m)))
             .toList();
+    }
+
+    /**
+     * Gera mensalidades em lote para todos os alunos no mês informado.
+     * Ignora alunos que já possuem mensalidade para o mês.
+     */
+    public int gerarMensalidadesEmLote(YearMonth mes) {
+        String mesRef = mes.format(MES_FMT);
+        int criadas = 0;
+
+        for (Aluno aluno : alunoRepository.findAll()) {
+            boolean jaExiste = mensalidadeRepository
+                .findByAlunoIdAndMesReferencia(aluno.getId(), mesRef)
+                .isPresent();
+
+            if (!jaExiste) {
+                Mensalidade m = new Mensalidade();
+                m.setAlunoId(aluno.getId());
+                m.setProfessorId(aluno.getProfessorId());
+                m.setMesReferencia(mesRef);
+                m.setValor(aluno.getValorMensalidade());
+                m.setDiaVencimento(aluno.getDiaVencimento());
+                m.setStatus(calcularStatus(aluno.getDiaVencimento(), mes));
+                mensalidadeRepository.save(m);
+                criadas++;
+            }
+        }
+
+        return criadas;
+    }
+  
+    /** Professor altera o status manualmente. */
+    public MensalidadeResponse alterarStatus(String mensalidadeId, String professorId,
+                                              AlterarStatusMensalidadeRequest request) {
+        Mensalidade m = mensalidadeRepository.findById(mensalidadeId)
+            .filter(mens -> mens.getProfessorId().equals(professorId))
+            .orElseThrow(() -> new IllegalArgumentException("Mensalidade não encontrada"));
+
+        m.setStatus(request.status());
+        if (request.status() != StatusMensalidade.PAGO) {
+            m.setDataPagamento(null);
+        }
+
+        return MensalidadeResponse.from(mensalidadeRepository.save(m));
     }
 
     /** Professor confirma o recebimento. */

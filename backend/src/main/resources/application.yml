@@ -35,3 +35,5 @@ wellpag:
     evolution-api-url: ${EVOLUTION_API_URL:http://localhost:8081}
     evolution-api-key: ${EVOLUTION_API_KEY:}
     scheduler-cron: ${WHATSAPP_CRON:0 0 9 * * *}   # Todo dia às 09h
+  mensalidade:
+    scheduler-cron: ${MENSALIDADE_CRON:0 5 0 1 * *}  # Todo dia 1º do mês às 00h05

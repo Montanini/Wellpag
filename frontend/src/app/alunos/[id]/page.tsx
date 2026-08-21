@@ -19,6 +19,7 @@ export default function AlunoDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [alterandoStatusId, setAlterandoStatusId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -81,6 +82,20 @@ export default function AlunoDetalhePage() {
     }
   }
 
+  async function alterarStatus(mensalidadeId: string, status: string) {
+    try {
+      const atualizada = await api.patch<Mensalidade>(
+        `/professor/mensalidades/${mensalidadeId}/status`,
+        { status }
+      );
+      setMensalidades((prev) => prev.map((m) => m.id === mensalidadeId ? atualizada : m));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAlterandoStatusId(null);
+    }
+  }
+
   if (loading) return <div className="min-h-screen"><Navbar /><div className="text-center py-16 text-gray-400 text-sm">Carregando...</div></div>;
   if (!aluno)  return <div className="min-h-screen"><Navbar /><div className="text-center py-16 text-red-500 text-sm">{erro}</div></div>;
 
@@ -93,13 +108,6 @@ export default function AlunoDetalhePage() {
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-sm">← Voltar</button>
           <h1 className="text-2xl font-bold flex-1">{aluno.nome}</h1>
-          <button
-            onClick={enviarLembrete}
-            disabled={enviandoLembrete}
-            className="text-sm text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 disabled:opacity-50 rounded-lg px-3 py-1.5 transition-colors"
-          >
-            {enviandoLembrete ? "Enviando..." : "Enviar lembrete"}
-          </button>
         </div>
 
         {/* Dados do aluno */}
@@ -111,8 +119,8 @@ export default function AlunoDetalhePage() {
             </button>
           </div>
 
-          <dl className="grid grid-cols-2 gap-3 text-sm">
-            <div><dt className="text-gray-500">E-mail</dt><dd className="font-medium">{aluno.email}</dd></div>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div><dt className="text-gray-500">E-mail</dt><dd className="font-medium break-all">{aluno.email}</dd></div>
             <div><dt className="text-gray-500">Telefone</dt><dd className="font-medium">{aluno.telefone ?? "—"}</dd></div>
             <div>
               <dt className="text-gray-500">CPF do Pagador PIX</dt>
@@ -193,28 +201,65 @@ export default function AlunoDetalhePage() {
           ) : (
             <div className="space-y-2">
               {mensalidades.map((m) => (
-                <div key={m.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium">{m.mesReferencia}</p>
-                    <p className="text-xs text-gray-400">
-                      Venc. dia {m.diaVencimento} · R$ {m.valor?.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={m.status} />
-                    {m.status !== "PAGO" && (
+                <div key={m.id} className="py-2 border-b border-gray-50 last:border-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">{m.mesReferencia}</p>
+                      <p className="text-xs text-gray-400">
+                        Venc. dia {m.diaVencimento} · R$ {m.valor?.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <StatusBadge status={m.status} />
                       <button
-                        onClick={() => confirmarPagamento(m.id)}
-                        className="text-xs text-brand-600 hover:underline"
+                        onClick={() => setAlterandoStatusId(alterandoStatusId === m.id ? null : m.id)}
+                        className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-1 hover:bg-gray-50"
                       >
-                        Confirmar
+                        Alterar status
                       </button>
-                    )}
+                    </div>
                   </div>
+
+                  {/* Seletor inline de status */}
+                  {alterandoStatusId === m.id && (
+                    <div className="mt-2 flex gap-2 flex-wrap">
+                      {(["PAGO", "A_PAGAR", "ATRASADO"] as const).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => alterarStatus(m.id, s)}
+                          disabled={m.status === s}
+                          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors disabled:opacity-40 disabled:cursor-default
+                            ${s === "PAGO"     ? "bg-green-50  border-green-200  text-green-700  hover:bg-green-100"  : ""}
+                            ${s === "A_PAGAR"  ? "bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100" : ""}
+                            ${s === "ATRASADO" ? "bg-red-50    border-red-200    text-red-700    hover:bg-red-100"    : ""}
+                          `}
+                        >
+                          {s === "PAGO" ? "Pago" : s === "A_PAGAR" ? "A pagar" : "Atrasado"}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setAlterandoStatusId(null)}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
+
+          {/* Botão Enviar lembrete abaixo das mensalidades */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <button
+              onClick={enviarLembrete}
+              disabled={enviandoLembrete}
+              className="text-sm text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            >
+              {enviandoLembrete ? "Enviando..." : "Enviar lembrete"}
+            </button>
+          </div>
         </div>
       </main>
     </div>

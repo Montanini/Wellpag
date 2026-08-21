@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout, getUser } from "@/lib/auth";
@@ -31,7 +32,9 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <span className="text-brand-600 font-bold text-xl">Wellpag</span>
+            <Link href="/dashboard">
+              <Image src="/logo.png" alt="Wellpag" width={120} height={40} className="h-10 w-auto object-contain" priority />
+            </Link>
             <div className="hidden sm:flex gap-1">
               {links.map(({ href, label }) => (
                 <Link
