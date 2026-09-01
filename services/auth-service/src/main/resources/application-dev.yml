@@ -1,0 +1,25 @@
+# Ambiente de desenvolvimento local
+# Valores fake, seguro versionar — nenhuma credencial real aqui.
+# Mesmo banco (wellpag_dev), mesma collection "usuarios" e mesmo segredo JWT do
+# monolito (backend/application-dev.yml) nesta fase transitoria: auth-service e
+# o dono real de Usuario, mas ainda compartilha a mesma URI Mongo do monolito
+# (ver decisao de arquitetura no prompt de extracao) — a separacao fisica de
+# banco fica para uma etapa futura de corte, quando o monolito for desligado.
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_dev
+
+server:
+  port: 8092
+
+wellpag:
+  jwt:
+    secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+  frontend-url: http://localhost:3000
+
+logging:
+  level:
+    root: INFO
+    com.wellpag.auth: DEBUG
