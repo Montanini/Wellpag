@@ -102,6 +102,20 @@ services:
     depends_on:
       - mongodb
 
+  notificacao-service:
+    build:
+      context: ./services/notificacao-service
+    container_name: wellpag-notificacao-service
+    ports:
+      - "8097:8097"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
+    depends_on:
+      - mongodb
+      - financeiro-service
+
 volumes:
   mongo_data:
   evolution_data:
