@@ -54,6 +54,18 @@ services:
     depends_on:
       - mongodb
 
+  aluno-service:
+    build:
+      context: ./services/aluno-service
+    container_name: wellpag-aluno-service
+    ports:
+      - "8093:8093"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+    depends_on:
+      - mongodb
+
   financeiro-service:
     build:
       context: ./services/financeiro-service
