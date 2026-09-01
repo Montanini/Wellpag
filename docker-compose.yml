@@ -90,6 +90,18 @@ services:
     depends_on:
       - mongodb
 
+  pagamento-service:
+    build:
+      context: ./services/pagamento-service
+    container_name: wellpag-pagamento-service
+    ports:
+      - "8096:8096"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+    depends_on:
+      - mongodb
+
 volumes:
   mongo_data:
   evolution_data:

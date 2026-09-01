@@ -1,0 +1,28 @@
+# Ambiente de desenvolvimento local
+# Valores fake, seguro versionar — nenhuma credencial real aqui.
+# Mesmo banco (wellpag_dev) e mesmo segredo JWT do monolito (backend/application-dev.yml)
+# nesta fase transitoria: mesma collection "banco_configuracao_inter", e tokens
+# emitidos pelo auth-service continuam validos aqui.
+#
+# wellpag.webhook.base-url aponta para o MONOLITO (porta 8080), nao para este
+# servico: e o monolito quem ainda recebe o webhook em si (/webhook/{token}/inter,
+# via WebhookController — nao extraido ainda). Isso e intencional.
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_dev
+
+server:
+  port: 8096
+
+wellpag:
+  jwt:
+    secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+  webhook:
+    base-url: http://localhost:8080
+
+logging:
+  level:
+    root: INFO
+    com.wellpag.pagamento: DEBUG
