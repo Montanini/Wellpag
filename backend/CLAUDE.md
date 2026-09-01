@@ -15,5 +15,6 @@ Convenções específicas deste diretório. Visão geral do projeto, arquitetura
 
 ## Particularidades
 
-- `config/MongoConfig.java` registra converters customizados `LocalTime↔String` — o driver do MongoDB não serializa `java.time.LocalTime` nativamente, então campos desse tipo (ex. horários de aula) dependem desses converters para persistir/ler corretamente.
 - Lombok é excluído explicitamente do `spring-boot-maven-plugin` (`<excludes>`) para não ser reprocessado no build do JAR final.
+- Lombok 1.18.46 (a versão mais recente no Maven Central) não gera getters/setters sob JDK 25 — por isso o `java.version` está fixado em 21, não é escolha arbitrária. Se algum dia cogitar subir pra 25, teste primeiro (`mvn clean compile` e confira se os getters/setters foram gerados via `javap`) — o erro é silencioso (compila com ~100 "cannot find symbol", não um erro claro sobre o Lombok).
+- Este diretório hoje só contém o fluxo de webhook bancário (`/webhook/**` — `WebhookController`/`WebhookService`/`webhook/*Parser`) — todo o resto foi extraído pros microsserviços em `services/` (ver `CLAUDE.md` da raiz, seção "Current Architecture"). `config/MongoConfig.java` (converter `LocalTime↔String`) foi removido junto com `Horario` quando o portal do aluno foi migrado — não existe mais neste módulo. Não roda em nenhum ambiente orquestrado (nem dev nem prod) desde que o dono decidiu não usar webhook por enquanto; só serve pra rodar standalone (`mvn spring-boot:run`) se alguém for trabalhar na extração futura do `webhook-service`.
