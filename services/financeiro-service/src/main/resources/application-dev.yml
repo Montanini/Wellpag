@@ -1,0 +1,24 @@
+# Ambiente de desenvolvimento local
+# Valores fake, seguro versionar — nenhuma credencial real aqui.
+# Mesmo banco (wellpag_dev) e mesmo segredo JWT do monolito (backend/application-dev.yml)
+# nesta fase transitoria: mesma collection "mensalidades", e tokens emitidos
+# pelo monolito continuam validos aqui.
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_dev
+
+server:
+  port: 8095
+
+wellpag:
+  jwt:
+    secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+  mensalidade:
+    scheduler-cron: 0 5 0 1 * *
+
+logging:
+  level:
+    root: INFO
+    com.wellpag.financeiro: DEBUG
