@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: gateway
+
+server:
+  port: 8080
+
+wellpag:
+  services:
+    relatorio: ${RELATORIO_SERVICE_URL:http://localhost:8091}
+    auth: ${AUTH_SERVICE_URL:http://localhost:8092}
+    aluno: ${ALUNO_SERVICE_URL:http://localhost:8093}
+    agenda: ${AGENDA_SERVICE_URL:http://localhost:8094}
+    financeiro: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
+    pagamento: ${PAGAMENTO_SERVICE_URL:http://localhost:8096}
+    notificacao: ${NOTIFICACAO_SERVICE_URL:http://localhost:8097}
+  monolith:
+    base-url: ${MONOLITH_BASE_URL:http://localhost:8098}

@@ -1,6 +1,5 @@
 package com.wellpag.security;
 
-import com.wellpag.model.Usuario;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -11,31 +10,20 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.List;
 
+/**
+ * Apenas validacao/extracao de claims - emissao de token (generate) e'
+ * responsabilidade exclusiva do auth-service desde a extracao (mesmo padrao
+ * ja usado nos 7 microsservicos extraidos).
+ */
 @Service
 public class JwtService {
 
     private final SecretKey key;
-    private final long expirationMs;
 
-    public JwtService(@Value("${wellpag.jwt.secret}") String secret,
-                      @Value("${wellpag.jwt.expiration-ms}") long expirationMs) {
+    public JwtService(@Value("${wellpag.jwt.secret}") String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
-    }
-
-    public String generate(Usuario usuario) {
-        return Jwts.builder()
-            .subject(usuario.getId())
-            .claim("email", usuario.getEmail())
-            .claim("nome", usuario.getNome())
-            .claim("role", usuario.getRole().name())
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + expirationMs))
-            .signWith(key)
-            .compact();
     }
 
     public boolean isValid(String token) {
