@@ -1,4 +1,4 @@
-package com.wellpag.dto;
+package com.wellpag.aluno.dto;
 
 public record PortalRelatorioResponse(
     int totalMeses,

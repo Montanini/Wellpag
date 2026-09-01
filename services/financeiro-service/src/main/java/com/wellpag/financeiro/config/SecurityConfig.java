@@ -15,9 +15,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * Versao enxuta do SecurityConfig do monolito: reproduz apenas as regras que hoje
- * protegem /professor/mensalidades/** (role PROFESSOR), mais o necessario para
- * Swagger/actuator. Nao ha OAuth2 login nem DaoAuthenticationProvider aqui —
+ * Versao enxuta do SecurityConfig do monolito: reproduz as regras que protegem
+ * /professor/mensalidades/** (role PROFESSOR) e /portal/mensalidades/** (role
+ * ALUNO, portado do antigo AlunoPortalController do monolito), mais o
+ * necessario para Swagger/actuator. Nao ha OAuth2 login nem DaoAuthenticationProvider aqui —
  * login/emissao de token e responsabilidade exclusiva do futuro auth-service;
  * este servico so valida o JWT recebido (ver JwtAuthFilter/JwtService).
  */
@@ -41,6 +42,7 @@ public class SecurityConfig {
                     "/actuator/health"
                 ).permitAll()
                 .requestMatchers("/professor/**").hasRole("PROFESSOR")
+                .requestMatchers("/portal/**").hasRole("ALUNO")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

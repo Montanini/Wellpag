@@ -52,6 +52,33 @@ public class MensalidadeService {
     }
 
     /**
+     * Porte fiel de AlunoPortalService.mensalidades()/buscarOuCriarMensalidadesMes
+     * do monolito: para cada Aluno vinculado ao usuarioId autenticado, garante que
+     * existe mensalidade do mês atual (cria se não existir E valorMensalidade !=
+     * null) e retorna TODAS as mensalidades existentes daquele aluno, ordenadas
+     * por mês desc.
+     */
+    public List<MensalidadeResponse> mensalidadesPortal(String usuarioId) {
+        return alunoRepository.findByUsuarioId(usuarioId)
+            .stream()
+            .flatMap(aluno -> buscarOuCriarMensalidadesMesPortal(aluno).stream())
+            .toList();
+    }
+
+    /**
+     * Porte fiel de AlunoPortalService.mensalidadesPorMes()/buscarOuCriarParaMes
+     * do monolito: para cada Aluno vinculado, garante/cria a mensalidade do mês
+     * informado.
+     */
+    public List<MensalidadeResponse> mensalidadesPortalPorMes(String usuarioId, YearMonth mes) {
+        return alunoRepository.findByUsuarioId(usuarioId)
+            .stream()
+            .map(aluno -> buscarOuCriarParaMesPortal(aluno, mes))
+            .map(m -> MensalidadeResponse.from(recalcularStatus(m)))
+            .toList();
+    }
+
+    /**
      * Gera mensalidades em lote para todos os alunos no mês informado.
      * Ignora alunos que já possuem mensalidade para o mês.
      */
@@ -111,13 +138,50 @@ public class MensalidadeService {
 
     // ---
 
+    /**
+     * Busca-ou-cria do fluxo do portal do aluno (usado por mensalidadesPortal):
+     * mesma lógica de AlunoPortalService.buscarOuCriarMensalidadesMes — usa
+     * findByAlunoIdAndProfessorId em vez de findByAlunoId (o monolito tinha um
+     * MensalidadeRepository unificado com findByAlunoId isolado; aqui só existe
+     * o método com professorId, e como cada mensalidade já é sempre gravada com
+     * o professorId do próprio aluno, o resultado é equivalente).
+     */
+    private List<MensalidadeResponse> buscarOuCriarMensalidadesMesPortal(Aluno aluno) {
+        List<Mensalidade> existentes =
+            mensalidadeRepository.findByAlunoIdAndProfessorId(aluno.getId(), aluno.getProfessorId());
+
+        String mesAtual = YearMonth.now().format(MES_FMT);
+        boolean temMesAtual = existentes.stream().anyMatch(m -> m.getMesReferencia().equals(mesAtual));
+
+        if (!temMesAtual && aluno.getValorMensalidade() != null) {
+            criarMensalidade(aluno, YearMonth.now());
+            existentes = mensalidadeRepository.findByAlunoIdAndProfessorId(aluno.getId(), aluno.getProfessorId());
+        }
+
+        return existentes.stream()
+            .map(m -> MensalidadeResponse.from(recalcularStatus(m)))
+            .sorted((a, b) -> b.mesReferencia().compareTo(a.mesReferencia()))
+            .toList();
+    }
+
+    /** Porte fiel de AlunoPortalService.buscarOuCriarParaMes. */
+    private Mensalidade buscarOuCriarParaMesPortal(Aluno aluno, YearMonth mes) {
+        return mensalidadeRepository
+            .findByAlunoIdAndMesReferencia(aluno.getId(), mes.format(MES_FMT))
+            .map(this::recalcularStatus)
+            .orElseGet(() -> criarMensalidade(aluno, mes));
+    }
+
     private Mensalidade criarMensalidade(String alunoId, String professorId, YearMonth mes) {
         Aluno aluno = alunoRepository.findByIdAndProfessorId(alunoId, professorId)
             .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
+        return criarMensalidade(aluno, mes);
+    }
 
+    private Mensalidade criarMensalidade(Aluno aluno, YearMonth mes) {
         Mensalidade m = new Mensalidade();
-        m.setAlunoId(alunoId);
-        m.setProfessorId(professorId);
+        m.setAlunoId(aluno.getId());
+        m.setProfessorId(aluno.getProfessorId());
         m.setMesReferencia(mes.format(MES_FMT));
         m.setValor(aluno.getValorMensalidade());
         m.setDiaVencimento(aluno.getDiaVencimento());

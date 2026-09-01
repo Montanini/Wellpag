@@ -1,6 +1,6 @@
-package com.wellpag.dto;
+package com.wellpag.aluno.dto;
 
-import com.wellpag.model.Aluno;
+import com.wellpag.aluno.model.Aluno;
 
 public record PortalPerfilResponse(
     String id,

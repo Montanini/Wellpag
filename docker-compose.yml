@@ -63,8 +63,12 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+      - AGENDA_SERVICE_URL=http://agenda-service:8094
+      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
     depends_on:
       - mongodb
+      - agenda-service
+      - financeiro-service
 
   agenda-service:
     build:
