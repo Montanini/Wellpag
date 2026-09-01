@@ -15,7 +15,11 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
  * Roteamento por Path predicate: um bean por servico, encaminhando o prefixo
  * de rota correspondente para cada um dos 7 microsservicos ja extraidos do
  * monolito, mais uma rota para o que restou no monolito (backend/): hoje so
- * /webhook/** (webhooks bancarios) e /aluno/portal/** (portal do aluno).
+ * /webhook/** (webhooks bancarios). /aluno/portal/** agora aponta para
+ * aluno-service — o portal do aluno foi migrado do monolito (que ate entao
+ * orquestrava a leitura direto no Mongo) para aluno-service, que orquestra via
+ * REST chamando agenda-service e financeiro-service (ver
+ * AlunoPortalController/AlunoPortalService la).
  *
  * O gateway e' um proxy reverso puro: nao valida JWT (cada servico ja valida
  * o seu proprio token de forma independente - ver JwtAuthFilter/JwtService em
@@ -47,7 +51,7 @@ public class RouteConfig {
     @Bean
     public RouterFunction<ServerResponse> alunoServiceRoute() {
         return route("aluno_service")
-            .route(path("/alunos/cadastro", "/professor/alunos/**"), http())
+            .route(path("/alunos/cadastro", "/professor/alunos/**", "/aluno/portal/**"), http())
             .before(uri(properties.getServices().getAluno()))
             .build();
     }
@@ -87,7 +91,7 @@ public class RouteConfig {
     @Bean
     public RouterFunction<ServerResponse> monolithRoute() {
         return route("monolith")
-            .route(path("/webhook/**", "/aluno/portal/**"), http())
+            .route(path("/webhook/**"), http())
             .before(uri(properties.getMonolith().getBaseUrl()))
             .build();
     }

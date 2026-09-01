@@ -15,6 +15,10 @@ server:
 wellpag:
   jwt:
     secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+  agenda-service:
+    base-url: ${AGENDA_SERVICE_URL:http://localhost:8094}
+  financeiro-service:
+    base-url: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
 
 logging:
   level:

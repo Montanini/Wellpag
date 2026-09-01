@@ -15,13 +15,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * Versao enxuta: so sobra o necessario para /webhook/** (publico) e
- * /aluno/portal/** (role ALUNO) - todo o resto (auth/login, professor/**) foi
- * extraido para os microsservicos. Sem OAuth2 login/DaoAuthenticationProvider
- * aqui - login/emissao de token e' responsabilidade exclusiva do
- * auth-service; esta aplicacao so valida o JWT recebido (ver
- * JwtAuthFilter/JwtService), mesmo padrao ja usado em todos os 7 servicos
- * extraidos.
+ * Versao enxuta: depois da migracao do portal do aluno para aluno-service
+ * (que agora orquestra /aluno/portal/** via REST contra agenda-service e
+ * financeiro-service), o unico fluxo que resta neste monolito e /webhook/**,
+ * que ja era publico. Nao sobra nenhuma rota autenticada/protegida por role
+ * neste modulo (confirmado via grep: nenhum @AuthenticationPrincipal em
+ * nenhum controller restante), entao authorizeHttpRequests libera tudo.
+ * JwtAuthFilter/JwtService sao mantidos mesmo assim (nao removidos por estarem
+ * fora do escopo explicito desta migracao) mas nao tem mais efeito pratico,
+ * ja que nenhuma regra exige authentication/role.
  */
 @Configuration
 @EnableWebSecurity
@@ -37,14 +39,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/webhook/**",
-                    "/swagger-ui/**",
-                    "/api-docs/**",
-                    "/actuator/health"
-                ).permitAll()
-                .requestMatchers("/aluno/portal/**").hasRole("ALUNO")
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .build();

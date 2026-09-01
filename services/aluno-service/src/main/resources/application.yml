@@ -18,3 +18,7 @@ springdoc:
 wellpag:
   jwt:
     secret: ${JWT_SECRET}
+  agenda-service:
+    base-url: ${AGENDA_SERVICE_URL:http://localhost:8094}
+  financeiro-service:
+    base-url: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}

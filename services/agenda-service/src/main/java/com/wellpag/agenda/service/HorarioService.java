@@ -54,6 +54,20 @@ public class HorarioService {
             .toList();
     }
 
+    /**
+     * Horários do aluno autenticado no portal (pode ter mais de um vínculo Aluno
+     * para o mesmo usuarioId). Porte fiel de AlunoPortalService.horarios() do
+     * monolito: para cada Aluno vinculado, busca os horários por alunoId e
+     * achata tudo em uma única lista.
+     */
+    public List<HorarioResponse> listarParaUsuario(String usuarioId) {
+        return alunoRepository.findByUsuarioId(usuarioId)
+            .stream()
+            .flatMap(aluno -> horarioRepository.findByAlunoId(aluno.getId()).stream())
+            .map(HorarioResponse::from)
+            .toList();
+    }
+
     public void remover(String horarioId, String professorId) {
         Horario horario = horarioRepository.findById(horarioId)
             .filter(h -> h.getProfessorId().equals(professorId))
