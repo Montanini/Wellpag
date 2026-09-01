@@ -2,6 +2,10 @@
 backend/target/
 backend/.env
 
+# Microservices (services/*/target/, one per extracted service)
+services/*/target/
+services/*/.env
+
 # Frontend
 frontend/.next/
 frontend/node_modules/

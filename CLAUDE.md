@@ -142,6 +142,8 @@ Goal: split the monolith above into independently deployable services, keeping M
 | `notificacao-service` | WhatsApp reminders + payment notifications | `NotificacaoController/Service`, `WhatsAppController/Service`, `LembreteScheduler`, `EvolutionApiClient` |
 | `relatorio-service` | Dashboard and financial reports (read-only aggregation) | `DashboardController/Service`, `RelatorioController/Service` |
 
+> `relatorio-service`'s dashboard also reads `Horario` (agenda-service), not just aluno/financeiro data — the table above only lists controller/service origin, not every read dependency, and that omission is a real source of coupling worth calling out explicitly.
+
 **Support patterns:**
 - **Database-per-service**: each service keeps its own MongoDB database (e.g. `wellpag_aluno`, `wellpag_financeiro`) — no cross-service collection access.
 - **API Gateway** (e.g. Spring Cloud Gateway): single entry point for the frontend, routes by path prefix, validates the JWT before routing.

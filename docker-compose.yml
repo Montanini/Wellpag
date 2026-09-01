@@ -26,6 +26,18 @@ services:
     volumes:
       - evolution_data:/evolution/instances
 
+  relatorio-service:
+    build:
+      context: ./services/relatorio-service
+    container_name: wellpag-relatorio-service
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+    depends_on:
+      - mongodb
+
 volumes:
   mongo_data:
   evolution_data:
