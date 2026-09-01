@@ -38,6 +38,22 @@ services:
     depends_on:
       - mongodb
 
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: wellpag-auth-service
+    ports:
+      - "8092:8092"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+      # Google OAuth2 nao tem default no application.yml (mesmo padrao do monolito) —
+      # precisa vir do ambiente do host mesmo em dev.
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    depends_on:
+      - mongodb
+
   agenda-service:
     build:
       context: ./services/agenda-service
