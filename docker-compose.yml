@@ -116,6 +116,34 @@ services:
       - mongodb
       - financeiro-service
 
+  gateway:
+    build:
+      context: ./services/gateway
+    container_name: wellpag-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - RELATORIO_SERVICE_URL=http://relatorio-service:8091
+      - AUTH_SERVICE_URL=http://auth-service:8092
+      - ALUNO_SERVICE_URL=http://aluno-service:8093
+      - AGENDA_SERVICE_URL=http://agenda-service:8094
+      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
+      - PAGAMENTO_SERVICE_URL=http://pagamento-service:8096
+      - NOTIFICACAO_SERVICE_URL=http://notificacao-service:8097
+      # O monolito (backend/) ainda nao esta neste docker-compose (so roda via
+      # mvn spring-boot:run) - host.docker.internal alcanca a porta 8098 do
+      # host a partir do container do gateway (Docker Desktop/Windows).
+      - MONOLITH_BASE_URL=http://host.docker.internal:8098
+    depends_on:
+      - relatorio-service
+      - auth-service
+      - aluno-service
+      - agenda-service
+      - financeiro-service
+      - pagamento-service
+      - notificacao-service
+
 volumes:
   mongo_data:
   evolution_data:

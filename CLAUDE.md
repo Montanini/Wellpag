@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Wellpag is a SaaS platform for autonomous teachers to manage students, schedules, and monthly fees. It is a full-stack monorepo with a Spring Boot backend and a Next.js frontend.
 
-- **Backend**: Java 17 + Spring Boot 3.2.4, MongoDB, JWT + Google OAuth2
+- **Backend**: Java 17 + Spring Boot 3.2.4 (monolith, `backend/`) plus 7 Java 21 + Spring Boot 3.5.5 microservices (`services/`) already extracted from it, MongoDB, JWT + Google OAuth2
 - **Frontend**: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS
 - **Messaging**: WhatsApp via Evolution API
 - **Deployment**: self-hosted on the owner's local machine (fixed IP), no cloud PaaS — intended to run there until traffic outgrows it
 
-> **Architecture status**: the codebase today is a single Spring Boot monolith (described in "Current Architecture" below). A target microservices architecture is documented under "Target Architecture" for future migration — it is a design only, not yet implemented. Do not assume service boundaries from that section exist in the code.
+> **Architecture status**: this is a strangler-pattern migration in progress, not a design-only document anymore. 7 of the 8 target microservices (see "Target Architecture") have already been extracted into `services/` and are live on `main`, each its own Maven module, each still pointing at the same physical MongoDB instance as the monolith (database-per-service is logical, not physical, in this transitional phase). A `services/gateway/` (Spring Cloud Gateway) is also live and is now the single HTTP entry point for the frontend, on port 8080. The original `backend/` monolith is still present and still runs, but has been trimmed down to only the two flows that have not been extracted yet: bank payment webhooks (`/webhook/**`) and the student self-service portal (`/aluno/portal/**`), on port 8098 in dev. "Current Architecture" below describes what's left in the monolith; the extracted services are summarized in "Services & Ports" and "Target Architecture".
 
 ## Commands
 
@@ -38,40 +38,59 @@ docker-compose up -d   # Start MongoDB (27017) + Evolution API (8081)
 
 ## Environments
 
-The backend runs as three Spring profiles, all intended to run side by side on the same physical machine (the owner's, fixed IP — see Project Overview):
+The monolith (`backend/`) runs as three Spring profiles, all intended to run side by side on the same physical machine (the owner's, fixed IP — see Project Overview). The 7 extracted services and the gateway currently only define a `dev` profile (see "Services & Ports" below) — `teste`/`prod` profiles for them are future work, not yet needed since only `dev` is exercised so far.
 
 | Profile | Config file | Port | MongoDB database | Secrets |
 |---|---|---|---|---|
-| `dev` | `application-dev.yml` | 8080 | `wellpag_dev` | Fake, hardcoded in the file — safe to commit |
+| `dev` | `application-dev.yml` | 8098 | `wellpag_dev` | Fake, hardcoded in the file — safe to commit |
 | `teste` | `application-teste.yml` | 8090 | `wellpag_teste` | Fake, hardcoded in the file — safe to commit |
 | `prod` | `application-prod.yml` | 8082 (or `SERVER_PORT`) | via `MONGODB_URI` | Real, **only** from env vars — the app fails to start if one is missing |
 
-All three share the same `docker-compose` MongoDB container (27017) and Evolution API (8081) — they're separated by database name and port, not by infrastructure. `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` and Google OAuth credentials are common across profiles and still come from `application.yml`'s env var placeholders (see below); only JWT secret, frontend URL and webhook base URL are profile-specific.
+Note the `dev` port: it moved from 8080 to **8098** — `services/gateway/` now owns 8080 as the single entry point for the frontend (see "Services & Ports"). `teste` (8090) and `prod` (8082/`SERVER_PORT`) are unchanged; nothing yet routes to them through a gateway.
+
+All three share the same `docker-compose` MongoDB container (27017) and Evolution API (8081) — they're separated by database name and port, not by infrastructure. Google OAuth credentials are no longer read by the monolith (auth/OAuth2 login moved to `auth-service` — see below); `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` are likewise no longer read by the monolith (WhatsApp moved to `notificacao-service`). Only JWT secret is still profile-specific for the monolith now (`frontend-url`/`webhook.base-url` were dropped along with the code that read them — see "Current Architecture").
 
 Select a profile with `-Dspring-boot.run.profiles=<dev|teste|prod>` (see Commands) or `SPRING_PROFILES_ACTIVE=<profile>`.
 
+## Services & Ports
+
+Single entry point for the frontend is the gateway on **8080** — `NEXT_PUBLIC_API_URL` stays `http://localhost:8080` unchanged, only what's listening there changed (previously the monolith directly, now the gateway). The gateway (`services/gateway/`, Spring Cloud Gateway, MVC/servlet variant — `spring-cloud-starter-gateway-server-webmvc` on `spring-cloud-dependencies` 2025.0.2, the release train compatible with Spring Boot 3.5.5) is a pure reverse proxy: it does **not** validate JWTs itself, it just routes by `Path` predicate and forwards the request (including the `Authorization` header) unchanged — each downstream service validates its own JWT independently.
+
+| Service | Dev port | Routes | Module |
+|---|---|---|---|
+| `gateway` | 8080 | routes everything below by path | `services/gateway/` |
+| `relatorio-service` | 8091 | `GET /professor/dashboard`, `/professor/relatorios/**` | `services/relatorio-service/` |
+| `auth-service` | 8092 | `/auth/**`, `/oauth2/**`, `/login/oauth2/**` | `services/auth-service/` |
+| `aluno-service` | 8093 | `POST /alunos/cadastro`, `/professor/alunos/**` | `services/aluno-service/` |
+| `agenda-service` | 8094 | `/professor/horarios/**` | `services/agenda-service/` |
+| `financeiro-service` | 8095 | `/professor/mensalidades/**` | `services/financeiro-service/` |
+| `pagamento-service` | 8096 | `/professor/banco/**` | `services/pagamento-service/` |
+| `notificacao-service` | 8097 | `/professor/notificacoes/**`, `/professor/whatsapp/**` | `services/notificacao-service/` |
+| monolith (`backend/`) | 8098 (dev only) | `/webhook/**`, `/aluno/portal/**` | `backend/` |
+
+All 7 services + the monolith still point at the same physical MongoDB (`wellpag_dev`) in this transitional phase — logical database-per-service, not physical isolation yet. Running everything locally without Docker: start each module with its own `mvn spring-boot:run -Dspring-boot.run.profiles=dev` (each has its own `pom.xml`); `docker-compose up -d` (root) runs the same set as containers, wired to each other by service hostname (e.g. `http://financeiro-service:8095`) instead of `localhost`.
+
 ## Environment Variables
 
-**Backend** — shared across all profiles, read by `application.yml`:
+**Backend monolith (`backend/`)** — now that auth/OAuth2 login and WhatsApp were extracted to `auth-service`/`notificacao-service`, the monolith no longer reads `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`EVOLUTION_API_URL`/`EVOLUTION_API_KEY` at all (those are now `auth-service`'s and `notificacao-service`'s concern respectively — see their own env vars). The monolith's only remaining required variable, across every profile, is the JWT secret (still validation-only — see "Current Architecture"):
 ```
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-EVOLUTION_API_URL=http://localhost:8081
-EVOLUTION_API_KEY=...
+JWT_SECRET=...   # dev/teste: hardcoded fake value in application-{dev,teste}.yml; prod: real value, env-only
 ```
 
-**Backend** — only required for the `prod` profile (no defaults, the app won't start without them):
+**Backend monolith** — only required for the `prod` profile (no defaults, the app won't start without it):
 ```
 MONGODB_URI=mongodb://<host>:27017/wellpag_prod
 JWT_SECRET=<min 256-bit secret>
-FRONTEND_URL=https://...
-WEBHOOK_BASE_URL=https://...
 SERVER_PORT=8082   # optional, defaults to 8082
 ```
 
-`dev` and `teste` need none of the above beyond the shared ones — their Mongo URI, JWT secret, frontend URL and webhook base URL are hardcoded (fake values) in `application-dev.yml`/`application-teste.yml`.
+`dev` and `teste` need none of the above — their Mongo URI and JWT secret are hardcoded (fake values) in `application-dev.yml`/`application-teste.yml`.
 
-Bank integration credentials (Banco Inter OAuth2 client id/secret, mTLS certificate/key, PIX key) are **not** environment variables in any profile — they are configured per-professor at runtime and stored in the `banco_configuracao_inter` MongoDB collection via `BancoController`.
+**Gateway (`services/gateway/`)** — `dev` profile has working localhost defaults for all 7 service URLs + the monolith URL (see "Services & Ports"); override via `RELATORIO_SERVICE_URL`, `AUTH_SERVICE_URL`, `ALUNO_SERVICE_URL`, `AGENDA_SERVICE_URL`, `FINANCEIRO_SERVICE_URL`, `PAGAMENTO_SERVICE_URL`, `NOTIFICACAO_SERVICE_URL`, `MONOLITH_BASE_URL` (as done in `docker-compose.yml`, pointing at each container's hostname).
+
+**Extracted services (`services/*`)** — each still needs its own `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (`auth-service`) or `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` (`notificacao-service`) as applicable; unchanged by this migration step.
+
+Bank integration credentials (Banco Inter OAuth2 client id/secret, mTLS certificate/key, PIX key) are **not** environment variables in any profile — they are configured per-professor at runtime and stored in the `banco_configuracao_inter` MongoDB collection, now owned by `pagamento-service`'s `BancoController` (moved out of the monolith).
 
 **Frontend** (copy from `.env.local.example`):
 ```
@@ -82,23 +101,17 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 
 ### Backend (`backend/src/main/java/com/wellpag/`)
 
-Layered Spring Boot application:
-- `controller/` — 11 REST controllers; API docs available at `http://localhost:8080/swagger-ui`
-- `service/` — Business logic. `LembreteScheduler` runs a cron job daily at 9am for WhatsApp reminders
-- `model/` — MongoDB documents: `Usuario`, `Aluno`, `Horario`, `Mensalidade`, `ConfiguracaoWhatsApp`, `LembreteEnviado`, `BancoConfiguracaoInter`, `NotificacaoPagamento`. Also includes enums (`BancoIntegracao`, `Role`, `DiaSemana`, `TipoHorario`, `StatusMensalidade`, `StatusNotificacao`, `AuthProvider`) — `BancoIntegracao` identifies which bank parser to use, it is not a persisted document
-- `dto/` — 23 request/response DTOs (separate from domain models)
-- `repository/` — Spring Data MongoDB repositories
-- `security/` — JWT filter, OAuth2 handlers, `JwtService`
-- `config/` — Security config, CORS, exception handling
-- `webhook/` — Bank payment webhook parsers, one per format (`InterParser`, `AsaasParser`, `PixGenericoParser`, `GenericoParser`) behind the `BancoParser` interface
-- `whatsapp/` — Evolution API HTTP client
+The monolith no longer serves the frontend directly — it now only handles the two flows not yet extracted to a microservice, both reached through the gateway (see "Services & Ports"):
+- **Bank payment webhooks** (`/webhook/**`, public route) — `WebhookController` → `WebhookService` → parser selected via `BancoIntegracao` (`InterParser`/`AsaasParser`/`PixGenericoParser`/`GenericoParser`, behind the `BancoParser` interface) → CPF match against `Aluno` → marks the matching `Mensalidade` as `PAGO` → writes a `NotificacaoPagamento`.
+- **Student self-service portal** (`/aluno/portal/**`, role `ALUNO`) — `AlunoPortalController` → `AlunoPortalService`: profile, schedules (`HorarioResponse`), monthly fees (`MensalidadeResponse`) and a consolidated financial report (`PortalRelatorioResponse`) for the logged-in student.
 
-**Key flows:**
-- Auth: Google OAuth2 → `AuthController` → JWT issued to frontend
-- Student onboarding: Teacher generates a link → student self-registers via `AlunoPortalController` → teacher completes data via `AlunoController`
-- Payments (generic): Bank webhook → `WebhookController` → parser selected by `BancoIntegracao` → CPF match → `MensalidadeService` marks fee as PAGO
-- Payments (Banco Inter): professor registers OAuth2 credentials + mTLS certificate/key via `BancoController` → `BancoInterService` registers the webhook with the Inter API → Inter calls back through the same generic webhook flow, parsed by `InterParser`
-- Dashboard: `DashboardController` returns students grouped by the current time slot (`Horario`)
+Everything else (auth/login, student CRUD, schedules CRUD, fee CRUD, bank credential config, notifications, WhatsApp) was extracted — its controllers/services/DTOs were deleted from the monolith and now live only in the corresponding `services/*` module (see "Services & Ports" / "Target Architecture"). What's left under `backend/src/main/java/com/wellpag/`:
+- `controller/` — `WebhookController`, `AlunoPortalController` (2 REST controllers; API docs at `http://localhost:8098/swagger-ui` in dev)
+- `service/` — `WebhookService`, `AlunoPortalService`
+- `model/`, `repository/` — trimmed to what those two flows still touch directly: `Usuario`, `Aluno`, `Horario`, `Mensalidade`, `NotificacaoPagamento`, plus enums (`BancoIntegracao`, `Role`, `DiaSemana`, `TipoHorario`, `StatusMensalidade`, `StatusNotificacao`, `AuthProvider`). Models/repositories that only the extracted flows used (`ConfiguracaoWhatsApp`, `LembreteEnviado`, `BancoConfiguracaoInter`) were deleted along with them.
+- `security/` — `JwtService` (validation/claim extraction only now — token issuance moved to `auth-service`), `JwtAuthFilter`
+- `config/` — `SecurityConfig` (now only `/webhook/**` public + `/aluno/portal/**` under role `ALUNO`; no more OAuth2 login, no more `/professor/**`), CORS, exception handling, `MongoConfig`
+- `webhook/` — bank payment webhook parsers, one per format (`InterParser`, `AsaasParser`, `PixGenericoParser`, `GenericoParser`) behind the `BancoParser` interface — unchanged, still monolith-only pending a future `webhook-service` extraction (see "Target Architecture")
 
 ### Frontend (`frontend/src/`)
 
@@ -124,29 +137,32 @@ Next.js App Router with two main role-based areas enforced by `middleware.ts`:
 - `Aluno` has a `professorId` (ref to `Usuario`) and a `cpf` used for automated payment matching
 - `Horario` belongs to a professor, has `DiaSemana` + start/end time + type (`FIXO`/`AVULSO`)
 - `Mensalidade` tracks monthly fee per student with status: `A_PAGAR`, `PAGO`, `ATRASADO`
-- `LembreteEnviado` prevents duplicate WhatsApp reminders per student per period
-- `BancoConfiguracaoInter` holds one professor's Banco Inter OAuth2 + mTLS credentials and webhook registration state
 
-## Target Architecture — Microservices (planned, design-only)
+`LembreteEnviado` (dedupes WhatsApp reminders) and `BancoConfiguracaoInter` (Banco Inter OAuth2 + mTLS credentials) no longer live in the monolith — they moved to `notificacao-service` and `pagamento-service` respectively, along with the code that used them.
 
-Goal: split the monolith above into independently deployable services, keeping MongoDB (database-per-service, no relational migration). This is a learning/portfolio-driven redesign, not a response to a current scaling problem — treat it as a future direction, and migrate incrementally (strangler pattern: extract one service at a time behind the gateway, starting with a low-risk one such as `relatorio-service`) rather than a rewrite.
+## Target Architecture — Microservices
 
-| Service | Responsibility | Sourced from (current monolith) |
-|---|---|---|
-| `auth-service` | Login, JWT issuance, Google OAuth2, user registration | `AuthController/Service`, `security/`, `Usuario` |
-| `aluno-service` | Student CRUD, self-registration portal | `AlunoController/Service`, `AlunoPortalController/Service`, `Aluno` |
-| `agenda-service` | Class schedules (fixed/one-off) | `HorarioController/Service`, `Horario` |
-| `financeiro-service` | Monthly fees and their status (`A_PAGAR`/`PAGO`/`ATRASADO`) | `MensalidadeController/Service`, `Mensalidade` |
-| `webhook-service` | Receives each bank's webhook (Inter, Asaas, generic PIX) on its own endpoint, validates mTLS/signature, parses the payload into a normalized payload | `WebhookController`, `InterParser`, `AsaasParser`, `PixGenericoParser`, `GenericoParser` |
-| `pagamento-service` | Owns per-bank integration credentials (Inter OAuth2 + mTLS config), matches normalized payments to a student by CPF, decides when a fee is settled | `BancoController`, `BancoInterService`, `BancoConfiguracaoInter`, `BancoIntegracao` |
-| `notificacao-service` | WhatsApp reminders + payment notifications | `NotificacaoController/Service`, `WhatsAppController/Service`, `LembreteScheduler`, `EvolutionApiClient` |
-| `relatorio-service` | Dashboard and financial reports (read-only aggregation) | `DashboardController/Service`, `RelatorioController/Service` |
+Goal: split the original monolith into independently deployable services, keeping MongoDB (database-per-service, no relational migration). This is a learning/portfolio-driven redesign, not a response to a current scaling problem, migrated incrementally (strangler pattern: extract one service at a time behind the gateway). **7 of the 8 rows below are already extracted and live in `services/`; only `webhook-service` remains — see the note under the table.**
+
+| Service | Responsibility | Sourced from (original monolith) | Status |
+|---|---|---|---|
+| `gateway` | Single HTTP entry point for the frontend (port 8080); routes by `Path` predicate to the service below or, for what's not extracted yet, to the monolith; pure reverse proxy — does **not** validate JWT, forwards `Authorization` unchanged | n/a (new) | **Done** — `services/gateway/` |
+| `auth-service` | Login, JWT issuance, Google OAuth2, user registration | `AuthController/Service`, `security/`, `Usuario` | **Done** — `services/auth-service/` |
+| `aluno-service` | Student CRUD, self-registration | `AlunoController/Service`, `Aluno` | **Done** — `services/aluno-service/` |
+| `agenda-service` | Class schedules (fixed/one-off) | `HorarioController/Service`, `Horario` | **Done** — `services/agenda-service/` |
+| `financeiro-service` | Monthly fees and their status (`A_PAGAR`/`PAGO`/`ATRASADO`) | `MensalidadeController/Service`, `Mensalidade` | **Done** — `services/financeiro-service/` |
+| `pagamento-service` | Owns per-bank integration credentials (Inter OAuth2 + mTLS config), matches normalized payments to a student by CPF, decides when a fee is settled | `BancoController`, `BancoInterService`, `BancoConfiguracaoInter`, `BancoIntegracao` | **Done** — `services/pagamento-service/` |
+| `notificacao-service` | WhatsApp reminders + payment notifications | `NotificacaoController/Service`, `WhatsAppController/Service`, `LembreteScheduler`, `EvolutionApiClient` | **Done** — `services/notificacao-service/` |
+| `relatorio-service` | Dashboard and financial reports (read-only aggregation) | `DashboardController/Service`, `RelatorioController/Service` | **Done** — `services/relatorio-service/` |
+| `webhook-service` | Receives each bank's webhook (Inter, Asaas, generic PIX) on its own endpoint, validates mTLS/signature, parses the payload into a normalized payload | `WebhookController`, `InterParser`, `AsaasParser`, `PixGenericoParser`, `GenericoParser` | **Not extracted** — still in `backend/` (`/webhook/**`) |
 
 > `relatorio-service`'s dashboard also reads `Horario` (agenda-service), not just aluno/financeiro data — the table above only lists controller/service origin, not every read dependency, and that omission is a real source of coupling worth calling out explicitly.
+>
+> The student self-service portal (`AlunoPortalController/Service`, `/aluno/portal/**`) is *also* still in `backend/`, unextracted — it isn't its own target-architecture service because it reads across `aluno`/`agenda`/`financeiro` domains directly (`AlunoRepository`, `HorarioRepository`, `MensalidadeRepository`) and doing that split properly needs those three services to expose a real REST API to each other first, which they don't yet. Do not extract it as part of a `webhook-service` wave — it's an unrelated flow that happens to still be co-located in the monolith.
 
 **Support patterns:**
-- **Database-per-service**: each service keeps its own MongoDB database (e.g. `wellpag_aluno`, `wellpag_financeiro`) — no cross-service collection access.
-- **API Gateway** (e.g. Spring Cloud Gateway): single entry point for the frontend, routes by path prefix, validates the JWT before routing.
+- **Database-per-service**: each service keeps its own MongoDB database (e.g. `wellpag_aluno`, `wellpag_financeiro`) — planned, not real yet: all 7 services + the monolith currently still point at the same physical `wellpag_dev` MongoDB instance (transitional phase, see "Services & Ports").
+- **API Gateway** — implemented (`services/gateway/`, Spring Cloud Gateway MVC/servlet variant): single entry point for the frontend, routes by `Path` predicate. It does **not** validate the JWT before routing (each service validates its own independently) — this was a deliberate choice to avoid redundant validation, not a gap; revisit only if a cross-cutting concern (rate limiting, centralized auth) actually needs it.
 - **Synchronous REST** for direct reads — e.g. `relatorio-service` calls `financeiro-service` and `aluno-service` to build the dashboard.
 - **Asynchronous events** (RabbitMQ) for flows currently coupled in-process in the monolith:
   1. Bank calls `webhook-service` (bank-specific endpoint, e.g. `/webhook/inter`).
@@ -157,6 +173,6 @@ Goal: split the monolith above into independently deployable services, keeping M
 
 ## CI
 
-GitHub Actions workflow at `.github/workflows/backend-ci.yml` runs `mvn verify -B` on push/PR to `main`/`develop` for `backend/**` paths. Requires Java 17 and a local MongoDB 7 service spun up in the workflow. This pipeline covers the current monolith; a microservices migration would need a per-service pipeline and image.
+GitHub Actions workflow at `.github/workflows/backend-ci.yml` runs `mvn verify -B` on push/PR to `main`/`develop` for `backend/**` paths. Requires Java 17 and a local MongoDB 7 service spun up in the workflow. This pipeline covers only the monolith (`backend/`) — the 7 extracted services and `services/gateway/` each have their own `pom.xml` (Java 21 / Spring Boot 3.5.5) but no CI workflow of their own yet; that's still open work, not something this migration step added.
 
 There is no cloud deployment target — the app runs on the owner's own machine (fixed IP), reachable directly without a PaaS. The multi-stage `backend/Dockerfile` (health-checks `/actuator/health`) can still be used to run it locally under Docker if preferred over `mvn spring-boot:run`.

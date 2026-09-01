@@ -1,0 +1,23 @@
+# Ambiente de desenvolvimento local
+# Aponta para os 7 microsservicos e para o monolito rodando localmente sem
+# Docker, cada um na sua porta padrao de dev (ver tabela no CLAUDE.md raiz).
+
+server:
+  port: 8080
+
+wellpag:
+  services:
+    relatorio: http://localhost:8091
+    auth: http://localhost:8092
+    aluno: http://localhost:8093
+    agenda: http://localhost:8094
+    financeiro: http://localhost:8095
+    pagamento: http://localhost:8096
+    notificacao: http://localhost:8097
+  monolith:
+    base-url: http://localhost:8098
+
+logging:
+  level:
+    root: INFO
+    com.wellpag.gateway: DEBUG

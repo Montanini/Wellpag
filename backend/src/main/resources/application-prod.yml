@@ -13,9 +13,6 @@ server:
 wellpag:
   jwt:
     secret: ${JWT_SECRET}
-  frontend-url: ${FRONTEND_URL}
-  webhook:
-    base-url: ${WEBHOOK_BASE_URL}
 
 logging:
   level:

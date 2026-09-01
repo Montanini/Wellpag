@@ -35,19 +35,14 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-        <!-- OAuth2 Client (login Google/GitHub) -->
+        <!-- Security (validacao de JWT para /aluno/portal/**; sem login/OAuth2 aqui - vinha transitivamente
+             via spring-boot-starter-oauth2-client, removido junto com AuthController/OAuth2SuccessHandler) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- Validation -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <!-- JWT (geração do token após OAuth2 login) -->
+        <!-- JWT (apenas validacao/extracao de claims - emissao de token e' responsabilidade do auth-service) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>

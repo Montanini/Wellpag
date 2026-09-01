@@ -1,5 +1,9 @@
 # Ambiente de desenvolvimento local
 # Valores fake, seguro versionar — nenhuma credencial real aqui
+#
+# Porta 8098: o gateway (services/gateway/) assumiu a porta 8080 e agora e' o
+# unico ponto de entrada do frontend. O monolito so serve mais /webhook/** e
+# /aluno/portal/** (o resto foi extraido para os 7 microsservicos).
 
 spring:
   data:
@@ -7,14 +11,11 @@ spring:
       uri: mongodb://localhost:27017/wellpag_dev
 
 server:
-  port: 8080
+  port: 8098
 
 wellpag:
   jwt:
     secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
-  frontend-url: http://localhost:3000
-  webhook:
-    base-url: http://localhost:8080
 
 logging:
   level:
