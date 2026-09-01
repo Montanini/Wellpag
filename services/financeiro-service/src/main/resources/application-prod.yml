@@ -1,0 +1,11 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
+# ver spring.data.mongodb.uri e wellpag.jwt.secret em application.yml (base).
+# wellpag.mensalidade.scheduler-cron já tem default (todo dia 1º às 00h05) e
+# fallback via MENSALIDADE_CRON no yml base — não precisa de override aqui.
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO

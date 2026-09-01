@@ -1,0 +1,16 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
+# ver spring.data.mongodb.uri e wellpag.jwt.secret em application.yml (base).
+# wellpag.whatsapp.evolution-api-url/evolution-api-key e
+# wellpag.financeiro-service.base-url já têm fallback de dev no yml base; em
+# produção o docker-compose.prod.yml passa EVOLUTION_API_URL/EVOLUTION_API_KEY
+# reais e FINANCEIRO_SERVICE_URL apontando para o hostname interno do compose.
+# wellpag.webhook.base-url aponta para o monolito no fallback de dev — o webhook
+# bancário não está em uso em produção (o monolito não é orquestrado), então essa
+# property fica com o default e não é referenciada pelo docker-compose.prod.yml.
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO

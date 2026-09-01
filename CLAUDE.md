@@ -11,7 +11,7 @@ Wellpag is a SaaS platform for autonomous teachers to manage students, schedules
 - **Messaging**: WhatsApp via Evolution API
 - **Deployment**: self-hosted on the owner's local machine (fixed IP), no cloud PaaS — intended to run there until traffic outgrows it
 
-> **Architecture status**: this is a strangler-pattern migration in progress, not a design-only document anymore. 7 of the 8 target microservices (see "Target Architecture") have already been extracted into `services/` and are live on `main`, each its own Maven module, each still pointing at the same physical MongoDB instance as the monolith (database-per-service is logical, not physical, in this transitional phase). A `services/gateway/` (Spring Cloud Gateway) is also live and is now the single HTTP entry point for the frontend, on port 8080. The original `backend/` monolith is still present and still runs, but has been trimmed down to only the one flow that has not been extracted yet: bank payment webhooks (`/webhook/**`), on port 8098 in dev. The student self-service portal (`/aluno/portal/**`), previously the monolith's other remaining flow, has since been migrated to `aluno-service`, which now orchestrates it via REST against `agenda-service` and `financeiro-service`. "Current Architecture" below describes what's left in the monolith; the extracted services are summarized in "Services & Ports" and "Target Architecture".
+> **Architecture status**: this is a strangler-pattern migration in progress, not a design-only document anymore. 7 of the 8 target microservices (see "Target Architecture") have already been extracted into `services/` and are live on `main`, each its own Maven module, each still pointing at the same physical MongoDB instance as the monolith (database-per-service is logical, not physical, in this transitional phase). A `services/gateway/` (Spring Cloud Gateway) is also live and is now the single HTTP entry point for the frontend, on port 8080, for all 7 extracted services. The original `backend/` monolith is still present in the repo (trimmed down to the one flow not yet extracted, bank payment webhooks at `/webhook/**`) but the owner decided not to use webhook for now and to turn the monolith off for good — it is **not part of any orchestrated environment anymore** (not dev, not `teste`, not prod): the gateway no longer routes to it, it's not in `docker-compose.yml`/`docker-compose.prod.yml`, and it does not run in production. It stays in the repo only as a source for a future `webhook-service` extraction (see "Target Architecture"). The student self-service portal (`/aluno/portal/**`), previously the monolith's other remaining flow, has since been migrated to `aluno-service`, which now orchestrates it via REST against `agenda-service` and `financeiro-service`. "Current Architecture" below describes what's left in the monolith; the extracted services are summarized in "Services & Ports" and "Target Architecture".
 
 ## Commands
 
@@ -38,7 +38,9 @@ docker-compose up -d   # Start MongoDB (27017) + Evolution API (8081)
 
 ## Environments
 
-The monolith (`backend/`) runs as three Spring profiles, all intended to run side by side on the same physical machine (the owner's, fixed IP — see Project Overview). The 7 extracted services and the gateway currently only define a `dev` profile (see "Services & Ports" below) — `teste`/`prod` profiles for them are future work, not yet needed since only `dev` is exercised so far.
+The monolith (`backend/`) still defines three Spring profiles (`dev`/`teste`/`prod`, table below) in its own config, but **none of them are part of an orchestrated environment anymore** — the owner decided to turn the monolith off for good (webhook is not in use for now) rather than run it in production; it's disconnected from the gateway and from both `docker-compose.yml`/`docker-compose.prod.yml`. The profiles below are historical/reference only, kept in case someone runs `backend/` standalone (`mvn spring-boot:run`) to work on the not-yet-extracted webhook code.
+
+The 7 extracted services and the gateway each define `dev` and `prod` profiles (see "Services & Ports" and "Production Deployment" below); `teste` for them is future work, not yet needed since only `dev`/`prod` are exercised so far.
 
 | Profile | Config file | Port | MongoDB database | Secrets |
 |---|---|---|---|---|
@@ -46,7 +48,7 @@ The monolith (`backend/`) runs as three Spring profiles, all intended to run sid
 | `teste` | `application-teste.yml` | 8090 | `wellpag_teste` | Fake, hardcoded in the file — safe to commit |
 | `prod` | `application-prod.yml` | 8082 (or `SERVER_PORT`) | via `MONGODB_URI` | Real, **only** from env vars — the app fails to start if one is missing |
 
-Note the `dev` port: it moved from 8080 to **8098** — `services/gateway/` now owns 8080 as the single entry point for the frontend (see "Services & Ports"). `teste` (8090) and `prod` (8082/`SERVER_PORT`) are unchanged; nothing yet routes to them through a gateway.
+Note the `dev` port: it moved from 8080 to **8098** — `services/gateway/` now owns 8080 as the single entry point for the frontend (see "Services & Ports"). `teste` (8090) and `prod` (8082/`SERVER_PORT`) are unchanged; nothing routes to them through the gateway, and `prod` is not expected to actually run anywhere.
 
 All three share the same `docker-compose` MongoDB container (27017) and Evolution API (8081) — they're separated by database name and port, not by infrastructure. Google OAuth credentials are no longer read by the monolith (auth/OAuth2 login moved to `auth-service` — see below); `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` are likewise no longer read by the monolith (WhatsApp moved to `notificacao-service`). Only JWT secret is still profile-specific for the monolith now (`frontend-url`/`webhook.base-url` were dropped along with the code that read them — see "Current Architecture").
 
@@ -66,11 +68,12 @@ Single entry point for the frontend is the gateway on **8080** — `NEXT_PUBLIC_
 | `financeiro-service` | 8095 | `/professor/mensalidades/**` (+ internal `GET /portal/mensalidades`, `GET /portal/mensalidades/{mes}`, called by `aluno-service`) | `services/financeiro-service/` |
 | `pagamento-service` | 8096 | `/professor/banco/**` | `services/pagamento-service/` |
 | `notificacao-service` | 8097 | `/professor/notificacoes/**`, `/professor/whatsapp/**` | `services/notificacao-service/` |
-| monolith (`backend/`) | 8098 (dev only) | `/webhook/**` | `backend/` |
+
+The monolith (`backend/`, dev port 8098) is **not** in this table anymore — the gateway no longer routes anything to it (its `/webhook/**` route was removed once the owner decided to stop running the monolith; see the "Architecture status" note above). It can still be started standalone (`mvn spring-boot:run`, port 8098) for someone working on the not-yet-extracted webhook code, but nothing routes to it.
 
 `aluno-service`'s `/aluno/portal/**` orchestrates rather than owning all the data itself: `GET /perfil` is 100% local (aluno-service owns `Aluno`), but `GET /horarios` calls agenda-service's `GET /portal/horarios`, and `GET /mensalidades`, `GET /mensalidades/{mes}` and `GET /relatorio` call financeiro-service's `GET /portal/mensalidades[/{mes}]` (relatorio aggregates that same response locally) — all via `RestClient`, forwarding the caller's `Authorization` header unchanged (same pattern as `notificacao-service`'s `FinanceiroServiceClient`, see `services/aluno-service/src/main/java/com/wellpag/aluno/client/`). The two `/portal/**` endpoints on agenda-service/financeiro-service are protected by `hasRole("ALUNO")`, same as the `aluno-service` ones — they're not meant to be called by anything but `aluno-service`, but nothing currently enforces that beyond role-based JWT auth.
 
-All 7 services + the monolith still point at the same physical MongoDB (`wellpag_dev`) in this transitional phase — logical database-per-service, not physical isolation yet. Running everything locally without Docker: start each module with its own `mvn spring-boot:run -Dspring-boot.run.profiles=dev` (each has its own `pom.xml`); `docker-compose up -d` (root) runs the same set as containers, wired to each other by service hostname (e.g. `http://financeiro-service:8095`) instead of `localhost`.
+All 7 services still point at the same physical MongoDB (`wellpag_dev` in dev, `wellpag_prod` in production — see "Production Deployment") in this transitional phase — logical database-per-service, not physical isolation yet. Running everything locally without Docker: start each module with its own `mvn spring-boot:run -Dspring-boot.run.profiles=dev` (each has its own `pom.xml`); `docker-compose up -d` (root) runs the same set as containers, wired to each other by service hostname (e.g. `http://financeiro-service:8095`) instead of `localhost`.
 
 ## Environment Variables
 
@@ -88,7 +91,7 @@ SERVER_PORT=8082   # optional, defaults to 8082
 
 `dev` and `teste` need none of the above — their Mongo URI and JWT secret are hardcoded (fake values) in `application-dev.yml`/`application-teste.yml`.
 
-**Gateway (`services/gateway/`)** — `dev` profile has working localhost defaults for all 7 service URLs + the monolith URL (see "Services & Ports"); override via `RELATORIO_SERVICE_URL`, `AUTH_SERVICE_URL`, `ALUNO_SERVICE_URL`, `AGENDA_SERVICE_URL`, `FINANCEIRO_SERVICE_URL`, `PAGAMENTO_SERVICE_URL`, `NOTIFICACAO_SERVICE_URL`, `MONOLITH_BASE_URL` (as done in `docker-compose.yml`, pointing at each container's hostname).
+**Gateway (`services/gateway/`)** — `dev` profile has working localhost defaults for all 7 service URLs (see "Services & Ports"); override via `RELATORIO_SERVICE_URL`, `AUTH_SERVICE_URL`, `ALUNO_SERVICE_URL`, `AGENDA_SERVICE_URL`, `FINANCEIRO_SERVICE_URL`, `PAGAMENTO_SERVICE_URL`, `NOTIFICACAO_SERVICE_URL` (as done in `docker-compose.yml`/`docker-compose.prod.yml`, pointing at each container's hostname). There is no monolith URL anymore — the `/webhook/**` route to `backend/` was removed (see "Architecture status").
 
 **Extracted services (`services/*`)** — each still needs its own `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (`auth-service`) or `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` (`notificacao-service`) as applicable; unchanged by this migration step. `aluno-service`'s `dev` profile has working localhost defaults for the two services it calls to orchestrate the portal: `AGENDA_SERVICE_URL` (default `http://localhost:8094`) and `FINANCEIRO_SERVICE_URL` (default `http://localhost:8095`) — same `wellpag.<service>.base-url` pattern as `notificacao-service`'s `FINANCEIRO_SERVICE_URL`; overridden to container hostnames in `docker-compose.yml`.
 
@@ -99,11 +102,27 @@ Bank integration credentials (Banco Inter OAuth2 client id/secret, mTLS certific
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
+## Production Deployment (self-hosted)
+
+The first real production environment is a Docker Compose overlay on top of the local dev setup, meant to run on the owner's machine (fixed IP):
+
+```bash
+cp .env.example .env    # fill in real secrets — never commit .env
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+- `docker-compose.prod.yml` (root) is an **overlay**, not a standalone file — it's always used together with the base `docker-compose.yml`. Each service in the overlay repeats its **complete** production `environment` list rather than relying on partial merge with the base file's list.
+- Runs the 7 extracted services (`relatorio-service` … `notificacao-service`) + `gateway`, all with `SPRING_PROFILES_ACTIVE=prod`, pointing at their `application-prod.yml`. **`backend/` (the monolith) is intentionally not part of this overlay** — see "Architecture status": it's not orchestrated in any environment anymore.
+- All 7 services share one physical MongoDB database in production too (`wellpag_prod`, same transitional database-per-service-is-logical-not-physical phase as dev's `wellpag_dev`), via one `MONGODB_URI` built from `${MONGO_ROOT_USER}`/`${MONGO_ROOT_PASSWORD}` in `.env`.
+- Unlike the dev `docker-compose.yml`, the production `mongodb` service enables authentication (`MONGO_INITDB_ROOT_USERNAME`/`MONGO_INITDB_ROOT_PASSWORD`) and does **not** expose port 27017 to the host — only the services on the internal Compose network can reach it (`mongodb:27017`). Removing an inherited port mapping needs the Compose `!reset` tag (`ports: !reset []`); a plain `ports: []` would not remove it, since Compose merges (appends) sequence-typed attributes like `ports` across files by default.
+- `.env.example` (root) documents every variable the overlay references — `JWT_SECRET`, `MONGO_ROOT_USER`/`MONGO_ROOT_PASSWORD`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `FRONTEND_URL`, `EVOLUTION_API_URL`/`EVOLUTION_API_KEY`. Copy it to `.env` and fill in real values; `.env` itself is gitignored.
+- Runtime validation of this overlay (`docker compose -f docker-compose.yml -f docker-compose.prod.yml config`, and an actual `up -d` with a real `.env`) is pending — it needs to be run on a machine with Docker available.
+
 ## Current Architecture (Monolith)
 
 ### Backend (`backend/src/main/java/com/wellpag/`)
 
-The monolith no longer serves the frontend directly — it now only handles the one flow not yet extracted to a microservice, reached through the gateway (see "Services & Ports"):
+The monolith no longer serves the frontend directly, and is no longer reached through the gateway or run in any orchestrated environment (see "Architecture status" and "Production Deployment") — it now only contains the one flow not yet extracted to a microservice, kept in the repo for a future `webhook-service` extraction:
 - **Bank payment webhooks** (`/webhook/**`, public route) — `WebhookController` → `WebhookService` → parser selected via `BancoIntegracao` (`InterParser`/`AsaasParser`/`PixGenericoParser`/`GenericoParser`, behind the `BancoParser` interface) → CPF match against `Aluno` → marks the matching `Mensalidade` as `PAGO` → writes a `NotificacaoPagamento`.
 
 The student self-service portal (`/aluno/portal/**`, previously `AlunoPortalController`/`AlunoPortalService` here) has been migrated to `aluno-service` — see "Services & Ports" for the new orchestration (aluno-service calls agenda-service and financeiro-service via REST for schedules/fees) and the `aluno-service` row in "Target Architecture".
@@ -149,7 +168,7 @@ Goal: split the original monolith into independently deployable services, keepin
 
 | Service | Responsibility | Sourced from (original monolith) | Status |
 |---|---|---|---|
-| `gateway` | Single HTTP entry point for the frontend (port 8080); routes by `Path` predicate to the service below or, for what's not extracted yet, to the monolith; pure reverse proxy — does **not** validate JWT, forwards `Authorization` unchanged | n/a (new) | **Done** — `services/gateway/` |
+| `gateway` | Single HTTP entry point for the frontend (port 8080); routes by `Path` predicate to each of the 7 services below; pure reverse proxy — does **not** validate JWT, forwards `Authorization` unchanged. No route to the monolith anymore (see "Architecture status") — when `webhook-service` is extracted, a `/webhook/**` route needs to be added back here, pointing at it instead of the monolith | n/a (new) | **Done** — `services/gateway/` |
 | `auth-service` | Login, JWT issuance, Google OAuth2, user registration | `AuthController/Service`, `security/`, `Usuario` | **Done** — `services/auth-service/` |
 | `aluno-service` | Student CRUD, self-registration, student self-service portal (orchestrated via REST against agenda-service/financeiro-service) | `AlunoController/Service`, `Aluno`, `AlunoPortalController/Service` | **Done** — `services/aluno-service/` |
 | `agenda-service` | Class schedules (fixed/one-off) | `HorarioController/Service`, `Horario` | **Done** — `services/agenda-service/` |

@@ -14,5 +14,3 @@ wellpag:
     financeiro: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
     pagamento: ${PAGAMENTO_SERVICE_URL:http://localhost:8096}
     notificacao: ${NOTIFICACAO_SERVICE_URL:http://localhost:8097}
-  monolith:
-    base-url: ${MONOLITH_BASE_URL:http://localhost:8098}

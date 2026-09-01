@@ -1,0 +1,11 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
+# ver spring.data.mongodb.uri, wellpag.jwt.secret e as credenciais OAuth2 do Google
+# em application.yml (base). wellpag.frontend-url tem fallback de dev no yml base;
+# em produção o docker-compose.prod.yml passa a FRONTEND_URL real via ambiente.
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO
