@@ -38,6 +38,18 @@ services:
     depends_on:
       - mongodb
 
+  agenda-service:
+    build:
+      context: ./services/agenda-service
+    container_name: wellpag-agenda-service
+    ports:
+      - "8094:8094"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
+    depends_on:
+      - mongodb
+
 volumes:
   mongo_data:
   evolution_data:
