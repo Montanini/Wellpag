@@ -1,0 +1,120 @@
+version: '3.8'
+
+# Overlay de producao — roda na maquina do professor com IP fixo.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Antes de subir, copie .env.example para .env na raiz e preencha com os
+# valores reais (nunca commitar o .env).
+#
+# Cada servico repete aqui a lista COMPLETA de variaveis de ambiente que
+# precisa em producao, em vez de contar apenas com o merge por chave do
+# Compose para `environment` (que, tecnicamente, ja mergeia entradas
+# "- CHAVE=valor" dos dois arquivos por chave, preservando as do arquivo base
+# que nao forem sobrescritas aqui). Repetir tudo explicitamente evita
+# depender desse comportamento de merge implicito entre arquivos — quem le
+# este arquivo sozinho ve a configuracao de producao completa de cada
+# servico, sem precisar cruzar com docker-compose.yml.
+#
+# backend/ (monolito) nao entra neste overlay: o dono decidiu nao usar
+# webhook por enquanto e desligar o monolito de producao de vez. Ele nunca
+# foi containerizado nesta migracao.
+#
+# Portas: em dev, cada servico publica sua porta no host pra facilitar teste
+# direto. Em producao, so o "gateway" (8080) deve ficar acessivel de fora —
+# ele e o unico ponto de entrada pretendido (ver CLAUDE.md). Por isso todo
+# servico interno (mongodb, evolution-api, e os 7 microsservicos) tem sua
+# porta resetada aqui com "!reset []", mesma tecnica usada no mongodb.
+# Conversas entre servicos continuam funcionando normalmente porque
+# containers na mesma rede do Compose se enxergam pelo hostname do servico,
+# independente de a porta estar publicada no host ou nao.
+
+services:
+
+  mongodb:
+    # O Compose faz merge de listas por padrao (append), nao substituicao —
+    # "ports: []" aqui NÃO removeria o mapeamento "27017:27017" herdado do
+    # docker-compose.yml base, so adicionaria zero entradas a mais. A tag
+    # "!reset" (Compose v2.24+) e a forma documentada de zerar um atributo de
+    # lista herdado em vez de fazer merge nele:
+    # https://docs.docker.com/reference/compose-file/merge/#reset-value
+    ports: !reset []
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+
+  evolution-api:
+    ports: !reset []
+    environment:
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - DATABASE_ENABLED=false
+      - QRCODE_LIMIT=10
+
+  relatorio-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+
+  auth-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+
+  aluno-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - AGENDA_SERVICE_URL=http://agenda-service:8094
+      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
+
+  agenda-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+
+  financeiro-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+
+  pagamento-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+
+  notificacao-service:
+    ports: !reset []
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+
+  gateway:
+    # Unico servico que mantem a porta publicada no host (herdada do
+    # docker-compose.yml base) — e o unico ponto de entrada pretendido.
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - RELATORIO_SERVICE_URL=http://relatorio-service:8091
+      - AUTH_SERVICE_URL=http://auth-service:8092
+      - ALUNO_SERVICE_URL=http://aluno-service:8093
+      - AGENDA_SERVICE_URL=http://agenda-service:8094
+      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
+      - PAGAMENTO_SERVICE_URL=http://pagamento-service:8096
+      - NOTIFICACAO_SERVICE_URL=http://notificacao-service:8097

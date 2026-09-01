@@ -1,0 +1,12 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
+# ver spring.data.mongodb.uri e wellpag.jwt.secret em application.yml (base).
+# wellpag.webhook.base-url aponta para o monolito no fallback de dev — o webhook
+# bancário não está em uso em produção (o monolito não é orquestrado), então essa
+# property fica com o default e não é referenciada pelo docker-compose.prod.yml.
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO

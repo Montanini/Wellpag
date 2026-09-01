@@ -1,6 +1,8 @@
 # Ambiente de desenvolvimento local
-# Aponta para os 7 microsservicos e para o monolito rodando localmente sem
-# Docker, cada um na sua porta padrao de dev (ver tabela no CLAUDE.md raiz).
+# Aponta para os 7 microsservicos rodando localmente sem Docker, cada um na
+# sua porta padrao de dev (ver tabela no CLAUDE.md raiz). O monolito
+# (backend/) nao e mais roteado pelo gateway - ver comentario em
+# RouteConfig sobre a remocao da rota /webhook/**.
 
 server:
   port: 8080
@@ -14,8 +16,6 @@ wellpag:
     financeiro: http://localhost:8095
     pagamento: http://localhost:8096
     notificacao: http://localhost:8097
-  monolith:
-    base-url: http://localhost:8098
 
 logging:
   level:

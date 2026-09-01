@@ -14,12 +14,18 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
 /**
  * Roteamento por Path predicate: um bean por servico, encaminhando o prefixo
  * de rota correspondente para cada um dos 7 microsservicos ja extraidos do
- * monolito, mais uma rota para o que restou no monolito (backend/): hoje so
- * /webhook/** (webhooks bancarios). /aluno/portal/** agora aponta para
- * aluno-service — o portal do aluno foi migrado do monolito (que ate entao
- * orquestrava a leitura direto no Mongo) para aluno-service, que orquestra via
- * REST chamando agenda-service e financeiro-service (ver
+ * monolito. /aluno/portal/** agora aponta para aluno-service — o portal do
+ * aluno foi migrado do monolito (que ate entao orquestrava a leitura direto
+ * no Mongo) para aluno-service, que orquestra via REST chamando
+ * agenda-service e financeiro-service (ver
  * AlunoPortalController/AlunoPortalService la).
+ *
+ * A rota para o monolito (backend/), que so servia /webhook/** (webhooks
+ * bancarios), foi removida: o dono decidiu nao usar webhook por enquanto e
+ * desligar o monolito de producao de vez (ele nao roda mais em nenhum
+ * ambiente orquestrado). Quando webhook-service for extraido do monolito no
+ * futuro, uma rota nova (/webhook/** -> webhook-service) precisa ser
+ * adicionada aqui, seguindo o mesmo padrao dos demais beans deste arquivo.
  *
  * O gateway e' um proxy reverso puro: nao valida JWT (cada servico ja valida
  * o seu proprio token de forma independente - ver JwtAuthFilter/JwtService em
@@ -85,14 +91,6 @@ public class RouteConfig {
         return route("notificacao_service")
             .route(path("/professor/notificacoes/**", "/professor/whatsapp/**"), http())
             .before(uri(properties.getServices().getNotificacao()))
-            .build();
-    }
-
-    @Bean
-    public RouterFunction<ServerResponse> monolithRoute() {
-        return route("monolith")
-            .route(path("/webhook/**"), http())
-            .before(uri(properties.getMonolith().getBaseUrl()))
             .build();
     }
 }

@@ -6,10 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * URLs base dos 7 microsservicos ja extraidos e do que restou no monolito
- * (backend/, hoje so /webhook/** e /aluno/portal/**), usadas pelo RouteConfig
- * para montar as rotas do gateway. Cada uma vem de uma property configuravel
- * (com default de dev sem Docker) - ver application.yml/application-dev.yml.
+ * URLs base dos 7 microsservicos ja extraidos, usadas pelo RouteConfig para
+ * montar as rotas do gateway. Cada uma vem de uma property configuravel (com
+ * default de dev sem Docker) - ver application.yml/application-dev.yml.
+ *
+ * O monolito (backend/) nao e mais roteado por aqui - ver comentario em
+ * RouteConfig sobre a remocao da rota /webhook/**.
  */
 @Getter
 @Setter
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Component;
 public class GatewayProperties {
 
     private Services services = new Services();
-    private Monolith monolith = new Monolith();
 
     @Getter
     @Setter
@@ -30,11 +31,5 @@ public class GatewayProperties {
         private String financeiro;
         private String pagamento;
         private String notificacao;
-    }
-
-    @Getter
-    @Setter
-    public static class Monolith {
-        private String baseUrl;
     }
 }

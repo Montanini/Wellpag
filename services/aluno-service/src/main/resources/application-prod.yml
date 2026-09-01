@@ -1,0 +1,13 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
+# ver spring.data.mongodb.uri e wellpag.jwt.secret em application.yml (base).
+# wellpag.agenda-service.base-url e wellpag.financeiro-service.base-url já têm
+# fallback de dev no yml base; em produção o docker-compose.prod.yml passa
+# AGENDA_SERVICE_URL/FINANCEIRO_SERVICE_URL apontando para o hostname interno
+# de cada serviço na rede do compose.
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO
