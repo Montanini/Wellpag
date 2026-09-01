@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: agenda-service
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+server:
+  port: 8094
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui
+
+wellpag:
+  jwt:
+    secret: ${JWT_SECRET}

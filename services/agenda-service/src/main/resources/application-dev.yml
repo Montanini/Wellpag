@@ -1,0 +1,24 @@
+# Ambiente de desenvolvimento local
+# Valores fake, seguro versionar — nenhuma credencial real aqui.
+# Mesmo banco (wellpag_dev) e mesmo segredo JWT do monolito (backend/application-dev.yml)
+# nesta fase transitoria: agenda-service escreve na mesma collection "horarios" que o
+# monolito, e tokens emitidos pelo monolito continuam validos aqui. A separacao fisica
+# de banco (database-per-service de verdade) fica para uma etapa futura de corte, quando
+# o monolito for desligado — ver decisao de arquitetura no prompt de extracao.
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_dev
+
+server:
+  port: 8094
+
+wellpag:
+  jwt:
+    secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+
+logging:
+  level:
+    root: INFO
+    com.wellpag.agenda: DEBUG
