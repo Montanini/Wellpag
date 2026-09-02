@@ -14,7 +14,7 @@ services:
       - mongo_data:/data/db
 
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v1.8.7
     container_name: wellpag-evolution
     ports:
       - "8081:8080"

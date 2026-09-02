@@ -1,21 +1,17 @@
 # Ambiente de desenvolvimento local
-# Aponta para os 7 microsservicos rodando localmente sem Docker, cada um na
-# sua porta padrao de dev (ver tabela no CLAUDE.md raiz). O monolito
-# (backend/) nao e mais roteado pelo gateway - ver comentario em
-# RouteConfig sobre a remocao da rota /webhook/**.
+# As URLs dos 7 microsservicos vem de application.yml (wellpag.services.*),
+# que ja usa localhost como default e aceita override via env var
+# (RELATORIO_SERVICE_URL, AUTH_SERVICE_URL, etc). Nao hardcodar aqui de novo:
+# um profile-specific file tem precedencia sobre application.yml, entao um
+# valor fixo aqui anularia o override por env var usado pelo docker-compose
+# (que aponta para o hostname de cada container, ex. http://auth-service:8092,
+# em vez de localhost) - so o cenario "rodando sem Docker" (ver tabela no
+# CLAUDE.md raiz) depende do default localhost de application.yml. O monolito
+# (backend/) nao e mais roteado pelo gateway - ver comentario em RouteConfig
+# sobre a remocao da rota /webhook/**.
 
 server:
   port: 8080
-
-wellpag:
-  services:
-    relatorio: http://localhost:8091
-    auth: http://localhost:8092
-    aluno: http://localhost:8093
-    agenda: http://localhost:8094
-    financeiro: http://localhost:8095
-    pagamento: http://localhost:8096
-    notificacao: http://localhost:8097
 
 logging:
   level:
