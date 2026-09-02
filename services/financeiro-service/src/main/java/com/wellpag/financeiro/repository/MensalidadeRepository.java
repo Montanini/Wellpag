@@ -13,6 +13,7 @@ import java.util.Optional;
  */
 public interface MensalidadeRepository extends MongoRepository<Mensalidade, String> {
     Optional<Mensalidade> findByAlunoIdAndMesReferencia(String alunoId, String mesReferencia);
+    Optional<Mensalidade> findByAlunoIdAndProfessorIdAndMesReferencia(String alunoId, String professorId, String mesReferencia);
     List<Mensalidade> findByAlunoIdAndProfessorId(String alunoId, String professorId);
     List<Mensalidade> findByProfessorIdAndMesReferencia(String professorId, String mesReferencia);
 }

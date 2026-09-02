@@ -21,6 +21,9 @@ wellpag:
     secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
   webhook:
     base-url: http://localhost:8080
+  crypto:
+    # Chave AES-256 fake (32 bytes, base64), seguro versionar — NAO USAR EM PRODUCAO.
+    banco-config-key: N1c3Oa4F+ERx6bTT87C6frxb07m6KzvXrG536/qFfrw=
 
 logging:
   level:

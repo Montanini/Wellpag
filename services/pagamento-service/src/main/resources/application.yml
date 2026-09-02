@@ -20,3 +20,5 @@ wellpag:
     secret: ${JWT_SECRET}
   webhook:
     base-url: ${WEBHOOK_BASE_URL:http://localhost:8080}
+  crypto:
+    banco-config-key: ${BANCO_CONFIG_ENCRYPTION_KEY}
