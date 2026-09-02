@@ -95,6 +95,7 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
       - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
       - JWT_SECRET=${JWT_SECRET}
+      - BANCO_CONFIG_ENCRYPTION_KEY=${BANCO_CONFIG_ENCRYPTION_KEY}
 
   notificacao-service:
     ports: !reset []

@@ -32,7 +32,7 @@ public class MensalidadeService {
     public MensalidadeResponse buscarOuCriar(String alunoId, String professorId, YearMonth mes) {
         String mesRef = mes.format(MES_FMT);
 
-        return mensalidadeRepository.findByAlunoIdAndMesReferencia(alunoId, mesRef)
+        return mensalidadeRepository.findByAlunoIdAndProfessorIdAndMesReferencia(alunoId, professorId, mesRef)
             .map(m -> MensalidadeResponse.from(recalcularStatus(m)))
             .orElseGet(() -> MensalidadeResponse.from(criarMensalidade(alunoId, professorId, mes)));
     }
