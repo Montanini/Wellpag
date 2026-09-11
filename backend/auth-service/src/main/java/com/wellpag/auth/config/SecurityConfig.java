@@ -15,11 +15,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 /**
  * Versao COMPLETA do SecurityConfig do monolito: login local (DaoAuthenticationProvider
@@ -27,6 +22,11 @@ import java.util.List;
  * outros servicos extraidos (ex. relatorio-service), que so validam JWT.
  * auth-service nao expoe /professor/** nem /aluno/portal/** (isso pertence aos
  * futuros aluno-service/agenda-service/etc.), entao essas regras nao aparecem aqui.
+ *
+ * CORS nao e' configurado aqui: o browser so fala com o gateway (backend/gateway/
+ * .../config/CorsConfig.java), nunca diretamente com este servico. Duplicar CORS
+ * aqui fazia o gateway repassar dois conjuntos de headers Access-Control-Allow-*
+ * (o deste servico + o do proprio gateway), o que o browser rejeita.
  */
 @Configuration
 @EnableWebSecurity
@@ -40,7 +40,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
@@ -77,18 +76,5 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }

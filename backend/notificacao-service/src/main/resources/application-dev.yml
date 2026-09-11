@@ -17,8 +17,8 @@ wellpag:
   jwt:
     secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
   whatsapp:
-    evolution-api-url: http://localhost:8081
-    evolution-api-key: wellpag-local-key
+    evolution-api-url: ${EVOLUTION_API_URL:http://localhost:8081}
+    evolution-api-key: ${EVOLUTION_API_KEY:wellpag-local-key}
     scheduler-cron: 0 0 9 * * *
   financeiro-service:
     base-url: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
