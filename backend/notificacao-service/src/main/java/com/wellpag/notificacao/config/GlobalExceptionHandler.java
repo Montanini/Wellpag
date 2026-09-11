@@ -1,5 +1,6 @@
 package com.wellpag.notificacao.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -33,5 +35,19 @@ public class GlobalExceptionHandler {
                 FieldError::getField,
                 fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "inválido"
             ));
+    }
+
+    /**
+     * Fallback para exceções não previstas (ex.: erro de rede/HTTP ao chamar a
+     * Evolution API). Sem isso, a exceção não tratada cai no forward padrão do
+     * Spring Boot para "/error", que o SecurityFilterChain bloqueia por não
+     * estar em permitAll() — o cliente via só um 403 vazio, sem pista nenhuma
+     * do erro real (só visível nos logs do servidor).
+     */
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleGeneric(Exception ex) {
+        log.error("Erro não tratado", ex);
+        return Map.of("erro", "Erro interno inesperado");
     }
 }

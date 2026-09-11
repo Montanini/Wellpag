@@ -12,6 +12,7 @@ import com.wellpag.notificacao.whatsapp.MensagemTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -42,7 +43,16 @@ public class WhatsAppService {
                 return nova;
             });
 
-        JsonNode resposta = evolutionApi.criarInstancia(config.getInstanceName());
+        JsonNode resposta;
+        try {
+            resposta = evolutionApi.criarInstancia(config.getInstanceName());
+        } catch (HttpClientErrorException.Forbidden e) {
+            // Evolution API rejeita instance/create quando o instanceName ja existe
+            // (ex.: professor clicou "Conectar" de novo antes de escanear o QR
+            // anterior, ou a instancia sobreviveu a um restart do container).
+            // Reaproveita a instancia existente em vez de falhar.
+            resposta = evolutionApi.obterQrCode(config.getInstanceName());
+        }
         String qrCode = extrairQrCode(resposta);
 
         config.setConectado(false);
@@ -209,7 +219,15 @@ public class WhatsAppService {
     private String extrairQrCode(JsonNode node) {
         if (node == null) return null;
         JsonNode qr = node.path("qrcode");
-        if (!qr.isMissingNode()) return qr.path("base64").asText(null);
-        return node.path("base64").asText(null);
+        String base64 = !qr.isMissingNode() ? qr.path("base64").asText(null) : node.path("base64").asText(null);
+        if (base64 == null) return null;
+
+        // A Evolution API ja retorna o valor como data URI completa
+        // ("data:image/png;base64,...."), nao base64 puro — mas o campo se
+        // chama qrCodeBase64 e o frontend monta a propria data URI a partir
+        // dele, prefixando de novo. Normaliza aqui pra sempre devolver base64
+        // puro, senao a imagem fica com o prefixo duplicado e nao renderiza.
+        int comma = base64.indexOf(',');
+        return base64.startsWith("data:") && comma >= 0 ? base64.substring(comma + 1) : base64;
     }
 }
