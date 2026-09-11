@@ -12,5 +12,4 @@ wellpag:
     aluno: ${ALUNO_SERVICE_URL:http://localhost:8093}
     agenda: ${AGENDA_SERVICE_URL:http://localhost:8094}
     financeiro: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
-    pagamento: ${PAGAMENTO_SERVICE_URL:http://localhost:8096}
     notificacao: ${NOTIFICACAO_SERVICE_URL:http://localhost:8097}

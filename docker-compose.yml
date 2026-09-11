@@ -94,18 +94,6 @@ services:
     depends_on:
       - mongodb
 
-  pagamento-service:
-    build:
-      context: ./backend/pagamento-service
-    container_name: wellpag-pagamento-service
-    ports:
-      - "8096:8096"
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
-    depends_on:
-      - mongodb
-
   notificacao-service:
     build:
       context: ./backend/notificacao-service
@@ -140,7 +128,6 @@ services:
       - ALUNO_SERVICE_URL=http://aluno-service:8093
       - AGENDA_SERVICE_URL=http://agenda-service:8094
       - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
-      - PAGAMENTO_SERVICE_URL=http://pagamento-service:8096
       - NOTIFICACAO_SERVICE_URL=http://notificacao-service:8097
     depends_on:
       - relatorio-service
@@ -148,7 +135,6 @@ services:
       - aluno-service
       - agenda-service
       - financeiro-service
-      - pagamento-service
       - notificacao-service
 
 volumes:

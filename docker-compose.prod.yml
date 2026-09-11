@@ -17,13 +17,13 @@ version: '3.8'
 # O monolito original foi removido do repositorio (o dono decidiu nao
 # extrair o fluxo de webhook bancario para um microsservico proprio e
 # descontinuar essa funcionalidade). "backend/" agora e' apenas o diretorio
-# que agrupa os 7 microsservicos + gateway (ver CLAUDE.md); nao existe mais
+# que agrupa os 6 microsservicos + gateway (ver CLAUDE.md); nao existe mais
 # um modulo "backend" isolado neste overlay.
 #
 # Portas: em dev, cada servico publica sua porta no host pra facilitar teste
 # direto. Em producao, so o "gateway" (8080) deve ficar acessivel de fora —
 # ele e o unico ponto de entrada pretendido (ver CLAUDE.md). Por isso todo
-# servico interno (mongodb, evolution-api, e os 7 microsservicos) tem sua
+# servico interno (mongodb, evolution-api, e os 6 microsservicos) tem sua
 # porta resetada aqui com "!reset []", mesma tecnica usada no mongodb.
 # Conversas entre servicos continuam funcionando normalmente porque
 # containers na mesma rede do Compose se enxergam pelo hostname do servico,
@@ -91,14 +91,6 @@ services:
       - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
       - JWT_SECRET=${JWT_SECRET}
 
-  pagamento-service:
-    ports: !reset []
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/wellpag_prod?authSource=admin
-      - JWT_SECRET=${JWT_SECRET}
-      - BANCO_CONFIG_ENCRYPTION_KEY=${BANCO_CONFIG_ENCRYPTION_KEY}
-
   notificacao-service:
     ports: !reset []
     environment:
@@ -119,5 +111,4 @@ services:
       - ALUNO_SERVICE_URL=http://aluno-service:8093
       - AGENDA_SERVICE_URL=http://agenda-service:8094
       - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
-      - PAGAMENTO_SERVICE_URL=http://pagamento-service:8096
       - NOTIFICACAO_SERVICE_URL=http://notificacao-service:8097
