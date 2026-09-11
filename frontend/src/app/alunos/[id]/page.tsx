@@ -59,6 +59,20 @@ export default function AlunoDetalhePage() {
   }
 
   async function enviarLembrete() {
+    // O backend sempre usa a mensalidade do mes atual pra montar o lembrete —
+    // busca ela aqui so pra decidir se pergunta confirmacao antes de mandar.
+    const mesAtual = new Date().toISOString().slice(0, 7); // yyyy-MM
+    const mensalidadeAtual = mensalidades.find((m) => m.mesReferencia === mesAtual);
+
+    if (mensalidadeAtual?.status === "PAGO" || mensalidadeAtual?.status === "A_PAGAR") {
+      const motivo = mensalidadeAtual.status === "PAGO"
+        ? "já está marcada como PAGA"
+        : "ainda não venceu (está como A PAGAR)";
+      if (!confirm(`A mensalidade deste mês ${motivo}. Quer enviar o lembrete de cobrança mesmo assim?`)) {
+        return;
+      }
+    }
+
     setEnviandoLembrete(true);
     try {
       await api.post(`/professor/whatsapp/lembretes/aluno/${id}`, {});
