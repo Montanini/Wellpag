@@ -5,21 +5,18 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout, getUser, AuthUser } from "@/lib/auth";
-import { api } from "@/lib/api";
 
 const links = [
   { href: "/dashboard",     label: "Dashboard"    },
   { href: "/alunos",        label: "Alunos"       },
   { href: "/horarios",      label: "Horários"     },
   { href: "/relatorios",    label: "Relatórios"   },
-  { href: "/notificacoes",  label: "Notificações" },
   { href: "/whatsapp",      label: "WhatsApp"     },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [pendentes, setPendentes] = useState(0);
 
   useEffect(() => {
     // getUser() lê localStorage, que so existe no cliente — chamar aqui (e nao
@@ -28,12 +25,6 @@ export function Navbar() {
     // (hydration mismatch).
     setUser(getUser());
   }, []);
-
-  useEffect(() => {
-    api.get<{ id: string; status: string }[]>("/professor/notificacoes?status=PENDENTE")
-      .then((lista) => setPendentes(lista.length))
-      .catch(() => {});
-  }, [pathname]);
 
   return (
     <nav className="bg-white border-b border-gray-200">
@@ -55,11 +46,6 @@ export function Navbar() {
                   }`}
                 >
                   {label}
-                  {href === "/notificacoes" && pendentes > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {pendentes > 9 ? "9+" : pendentes}
-                    </span>
-                  )}
                 </Link>
               ))}
             </div>
@@ -89,11 +75,6 @@ export function Navbar() {
               }`}
             >
               {label}
-              {href === "/notificacoes" && pendentes > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {pendentes}
-                </span>
-              )}
             </Link>
           ))}
         </div>

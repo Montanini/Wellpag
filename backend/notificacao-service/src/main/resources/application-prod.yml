@@ -2,10 +2,9 @@
 # Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
 # O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
 # ver spring.data.mongodb.uri e wellpag.jwt.secret em application.yml (base).
-# wellpag.whatsapp.evolution-api-url/evolution-api-key e
-# wellpag.financeiro-service.base-url já têm fallback de dev no yml base; em
-# produção o docker-compose.prod.yml passa EVOLUTION_API_URL/EVOLUTION_API_KEY
-# reais e FINANCEIRO_SERVICE_URL apontando para o hostname interno do compose.
+# wellpag.whatsapp.evolution-api-url/evolution-api-key já têm fallback de dev
+# no yml base; em produção o docker-compose.prod.yml passa
+# EVOLUTION_API_URL/EVOLUTION_API_KEY reais.
 
 logging:
   level:

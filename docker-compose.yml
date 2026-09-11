@@ -103,7 +103,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/wellpag_dev
-      - FINANCEIRO_SERVICE_URL=http://financeiro-service:8095
       # O default de application-dev.yml (http://localhost:8081) so funciona
       # rodando fora do Docker — dentro do container "localhost" e' o proprio
       # container, nao o host. Dentro da rede do Compose, o nome do servico +
@@ -112,7 +111,6 @@ services:
       - EVOLUTION_API_KEY=wellpag-local-key
     depends_on:
       - mongodb
-      - financeiro-service
       - evolution-api
 
   gateway:

@@ -31,6 +31,12 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
  * removida junto com o modulo inteiro — a integracao com o Banco Inter foi
  * descontinuada por completo (nao so o fluxo de webhook).
  *
+ * /professor/notificacoes/** (notificacoes de pagamento recebidas via webhook
+ * bancario, vinculadas manualmente pelo professor) tambem foi removida: sem
+ * nenhum webhook alimentando NotificacaoPagamento, a funcionalidade ficou
+ * orfa (lista sempre vazia) e foi descontinuada. notificacao-service continua
+ * vivo so pela mensageria WhatsApp (/professor/whatsapp/**).
+ *
  * O gateway e' um proxy reverso puro: nao valida JWT (cada servico ja valida
  * o seu proprio token de forma independente - ver JwtAuthFilter/JwtService em
  * cada modulo) e nao altera headers - HandlerFunctions.http() repassa a
@@ -85,7 +91,7 @@ public class RouteConfig {
     @Bean
     public RouterFunction<ServerResponse> notificacaoServiceRoute() {
         return route("notificacao_service")
-            .route(path("/professor/notificacoes/**", "/professor/whatsapp/**"), http())
+            .route(path("/professor/whatsapp/**"), http())
             .before(uri(properties.getServices().getNotificacao()))
             .build();
     }
