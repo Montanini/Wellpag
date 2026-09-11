@@ -6,9 +6,6 @@
 # wellpag.financeiro-service.base-url já têm fallback de dev no yml base; em
 # produção o docker-compose.prod.yml passa EVOLUTION_API_URL/EVOLUTION_API_KEY
 # reais e FINANCEIRO_SERVICE_URL apontando para o hostname interno do compose.
-# wellpag.webhook.base-url aponta para o monolito no fallback de dev — o webhook
-# bancário não está em uso em produção (o monolito não é orquestrado), então essa
-# property fica com o default e não é referenciada pelo docker-compose.prod.yml.
 
 logging:
   level:

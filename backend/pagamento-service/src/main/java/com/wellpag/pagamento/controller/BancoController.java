@@ -47,23 +47,6 @@ public class BancoController {
         );
     }
 
-    @PostMapping("/inter/registrar-webhook")
-    @Operation(summary = "Registra a URL de webhook na API do Banco Inter via mTLS")
-    public ResponseEntity<ConfiguracaoInterResponse> registrarWebhook(
-        @AuthenticationPrincipal String professorId
-    ) {
-        return ResponseEntity.ok(bancoInterService.registrarWebhook(professorId));
-    }
-
-    @DeleteMapping("/inter/webhook")
-    @Operation(summary = "Remove o webhook registrado na API do Banco Inter")
-    public ResponseEntity<Void> deletarWebhook(
-        @AuthenticationPrincipal String professorId
-    ) {
-        bancoInterService.deletarWebhook(professorId);
-        return ResponseEntity.noContent().build();
-    }
-
     private static String toText(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) return null;
         return new String(file.getBytes(), StandardCharsets.UTF_8);

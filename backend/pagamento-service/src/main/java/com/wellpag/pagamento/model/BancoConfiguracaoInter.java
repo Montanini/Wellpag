@@ -45,12 +45,6 @@ public class BancoConfiguracaoInter {
     @ValueConverter(AesGcmStringConverter.class)
     private String chavePrivadaPem;
 
-    /** true quando o webhook foi registrado com sucesso na API do Inter */
-    private boolean webhookRegistrado;
-
-    /** URL efetivamente registrada no Inter */
-    private String webhookUrl;
-
     @LastModifiedDate
     private LocalDateTime atualizadoEm;
 }

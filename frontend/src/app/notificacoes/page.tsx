@@ -8,7 +8,6 @@ import {
   ConfiguracaoInterResponse,
   NotificacaoResponse,
   StatusNotificacao,
-  WebhookConfiguracaoResponse,
 } from "@/lib/notificacao-types";
 
 function formatBRL(valor?: number) {
@@ -29,17 +28,13 @@ const STATUS_CONFIG: Record<StatusNotificacao, { label: string; className: strin
 
 export default function NotificacoesPage() {
   const [notificacoes, setNotificacoes] = useState<NotificacaoResponse[]>([]);
-  const [config, setConfig] = useState<WebhookConfiguracaoResponse | null>(null);
   const [filtro, setFiltro] = useState<StatusNotificacao | "TODAS">("PENDENTE");
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<NotificacaoResponse | null>(null);
-  const [configAberta, setConfigAberta] = useState(false);
+  const [bancoConfigAberto, setBancoConfigAberto] = useState(false);
 
   useEffect(() => {
     carregar();
-    api.get<WebhookConfiguracaoResponse>("/professor/notificacoes/webhook-configuracao")
-      .then(setConfig)
-      .catch(() => {});
   }, []);
 
   async function carregar() {
@@ -74,7 +69,7 @@ export default function NotificacoesPage() {
             )}
           </div>
           <button
-            onClick={() => setConfigAberta(true)}
+            onClick={() => setBancoConfigAberto(true)}
             className="text-sm text-brand-600 border border-brand-200 rounded-lg px-4 py-2 hover:bg-brand-50 transition-colors"
           >
             Configurar Banco
@@ -184,9 +179,9 @@ export default function NotificacoesPage() {
         />
       )}
 
-      {/* Modal: configuração de webhook */}
-      {configAberta && config && (
-        <ConfigModal config={config} onClose={() => setConfigAberta(false)} />
+      {/* Modal: configuração do Banco Inter */}
+      {bancoConfigAberto && (
+        <InterConfigModal onClose={() => setBancoConfigAberto(false)} />
       )}
     </div>
   );
@@ -298,84 +293,11 @@ function VincularModal({
   );
 }
 
-function ConfigModal({
-  config,
-  onClose,
-}: {
-  config: WebhookConfiguracaoResponse;
-  onClose: () => void;
-}) {
-  const [interAberto, setInterAberto] = useState(false);
-
-  async function copiar(url: string) {
-    await navigator.clipboard.writeText(url);
-    alert("URL copiada!");
-  }
-
-  if (interAberto) {
-    return <InterConfigModal onVoltar={() => setInterAberto(false)} onClose={onClose} />;
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-        <h2 className="font-semibold text-lg mb-1">Configurar Webhook Bancário</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Configure a URL correspondente ao seu banco nas configurações de webhook/PIX da sua conta.
-        </p>
-
-        <div className="space-y-3">
-          {Object.entries(config.urls).map(([banco, url]) => {
-            const isInter = banco.toLowerCase() === "inter";
-            return (
-              <div key={banco} className="border border-gray-100 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-medium text-gray-600">{banco}</p>
-                  {isInter && (
-                    <button
-                      onClick={() => setInterAberto(true)}
-                      className="text-xs text-brand-600 hover:underline"
-                    >
-                      Configurar credenciais
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs bg-gray-50 rounded px-2 py-1 text-gray-700 truncate">{url}</code>
-                  <button
-                    onClick={() => copiar(url)}
-                    className="text-xs text-brand-600 hover:underline shrink-0"
-                  >
-                    Copiar
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="text-xs text-gray-400 mt-4">
-          Seu token: <code className="bg-gray-50 px-1 rounded">{config.token}</code>
-        </p>
-
-        <button
-          onClick={onClose}
-          className="mt-4 w-full border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Fechar
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Modal de configuração Banco Inter ───
 
 function InterConfigModal({
-  onVoltar,
   onClose,
 }: {
-  onVoltar: () => void;
   onClose: () => void;
 }) {
   const [dados, setDados] = useState<ConfiguracaoInterResponse | null>(null);
@@ -385,8 +307,6 @@ function InterConfigModal({
   const certRef = useRef<HTMLInputElement>(null);
   const keyRef  = useRef<HTMLInputElement>(null);
   const [salvando, setSalvando] = useState(false);
-  const [registrando, setRegistrando] = useState(false);
-  const [removendo, setRemovendo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
 
@@ -426,49 +346,10 @@ function InterConfigModal({
     }
   }
 
-  async function registrarWebhook() {
-    setRegistrando(true);
-    setErro(null);
-    setSucesso(null);
-    try {
-      const atualizado = await api.post<ConfiguracaoInterResponse>(
-        "/professor/banco/inter/registrar-webhook", {}
-      );
-      setDados(atualizado);
-      feedback("Webhook registrado no Inter com sucesso.", "sucesso");
-    } catch (e: unknown) {
-      feedback(e instanceof Error ? e.message : "Erro ao registrar webhook.", "erro");
-    } finally {
-      setRegistrando(false);
-    }
-  }
-
-  async function removerWebhook() {
-    if (!confirm("Remover o webhook do Banco Inter?")) return;
-    setRemovendo(true);
-    setErro(null);
-    setSucesso(null);
-    try {
-      await api.delete("/professor/banco/inter/webhook");
-      setDados((prev) => prev ? { ...prev, webhookRegistrado: false, webhookUrl: undefined } : prev);
-      feedback("Webhook removido.", "sucesso");
-    } catch (e: unknown) {
-      feedback(e instanceof Error ? e.message : "Erro ao remover webhook.", "erro");
-    } finally {
-      setRemovendo(false);
-    }
-  }
-
-  const credenciaisCompletas = dados?.temCertificado && dados?.temChavePrivada
-    && !!dados?.clientId && !!dados?.chavePix;
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-2 mb-4">
-          <button onClick={onVoltar} className="text-gray-400 hover:text-gray-600 text-sm">← Voltar</button>
-          <h2 className="font-semibold text-lg">Banco Inter — Configuração PIX</h2>
-        </div>
+        <h2 className="font-semibold text-lg mb-1">Banco Inter — Configuração PIX</h2>
 
         <p className="text-xs text-gray-500 mb-4">
           Para integração automática via API, o Inter exige autenticação mTLS com certificado digital
@@ -553,14 +434,6 @@ function InterConfigModal({
               </div>
             </div>
           </div>
-
-          {/* Status do webhook */}
-          {dados?.webhookRegistrado && dados.webhookUrl && (
-            <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-              <p className="text-xs font-medium text-green-700 mb-0.5">Webhook ativo</p>
-              <code className="text-xs text-green-600 break-all">{dados.webhookUrl}</code>
-            </div>
-          )}
         </div>
 
         {/* Ações */}
@@ -572,27 +445,6 @@ function InterConfigModal({
           >
             {salvando ? "Salvando..." : "Salvar credenciais"}
           </button>
-
-          {!dados?.webhookRegistrado && (
-            <button
-              onClick={registrarWebhook}
-              disabled={registrando || !credenciaisCompletas}
-              title={!credenciaisCompletas ? "Salve todas as credenciais e certificados primeiro" : undefined}
-              className="w-full border border-brand-200 text-brand-600 hover:bg-brand-50 disabled:opacity-40 text-sm font-medium py-2 rounded-lg transition-colors"
-            >
-              {registrando ? "Registrando..." : "Registrar webhook no Inter"}
-            </button>
-          )}
-
-          {dados?.webhookRegistrado && (
-            <button
-              onClick={removerWebhook}
-              disabled={removendo}
-              className="w-full border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 text-sm py-2 rounded-lg transition-colors"
-            >
-              {removendo ? "Removendo..." : "Remover webhook"}
-            </button>
-          )}
 
           <button
             onClick={onClose}

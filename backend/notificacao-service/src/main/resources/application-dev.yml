@@ -16,8 +16,6 @@ server:
 wellpag:
   jwt:
     secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
-  webhook:
-    base-url: http://localhost:8080
   whatsapp:
     evolution-api-url: http://localhost:8081
     evolution-api-key: wellpag-local-key

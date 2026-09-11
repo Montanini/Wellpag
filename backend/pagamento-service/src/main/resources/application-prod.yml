@@ -3,9 +3,6 @@
 # O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
 # ver spring.data.mongodb.uri, wellpag.jwt.secret e wellpag.crypto.banco-config-key
 # (BANCO_CONFIG_ENCRYPTION_KEY) em application.yml (base).
-# wellpag.webhook.base-url aponta para o monolito no fallback de dev — o webhook
-# bancário não está em uso em produção (o monolito não é orquestrado), então essa
-# property fica com o default e não é referenciada pelo docker-compose.prod.yml.
 
 logging:
   level:

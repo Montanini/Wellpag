@@ -2,7 +2,6 @@ package com.wellpag.notificacao.controller;
 
 import com.wellpag.notificacao.dto.NotificacaoResponse;
 import com.wellpag.notificacao.dto.VincularNotificacaoRequest;
-import com.wellpag.notificacao.dto.WebhookConfiguracaoResponse;
 import com.wellpag.notificacao.model.StatusNotificacao;
 import com.wellpag.notificacao.service.NotificacaoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,12 +20,6 @@ import java.util.List;
 public class NotificacaoController {
 
     private final NotificacaoService notificacaoService;
-
-    @GetMapping("/webhook-configuracao")
-    @Operation(summary = "URLs do webhook por banco para configurar no seu banco")
-    public WebhookConfiguracaoResponse configuracao(@AuthenticationPrincipal String professorId) {
-        return notificacaoService.configuracao(professorId);
-    }
 
     @GetMapping
     @Operation(summary = "Listar notificações (filtre por status: PENDENTE, VINCULADA, IGNORADA)")

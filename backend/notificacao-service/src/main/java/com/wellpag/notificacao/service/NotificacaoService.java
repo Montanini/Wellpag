@@ -3,47 +3,21 @@ package com.wellpag.notificacao.service;
 import com.wellpag.notificacao.client.FinanceiroServiceClient;
 import com.wellpag.notificacao.dto.NotificacaoResponse;
 import com.wellpag.notificacao.dto.VincularNotificacaoRequest;
-import com.wellpag.notificacao.dto.WebhookConfiguracaoResponse;
 import com.wellpag.notificacao.model.NotificacaoPagamento;
 import com.wellpag.notificacao.model.StatusNotificacao;
-import com.wellpag.notificacao.model.Usuario;
 import com.wellpag.notificacao.repository.NotificacaoRepository;
-import com.wellpag.notificacao.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class NotificacaoService {
 
     private final NotificacaoRepository notificacaoRepository;
-    private final UsuarioRepository usuarioRepository;
     private final FinanceiroServiceClient financeiroServiceClient;
-
-    @Value("${wellpag.webhook.base-url}")
-    private String webhookBaseUrl;
-
-    public WebhookConfiguracaoResponse configuracao(String professorId) {
-        Usuario professor = usuarioRepository.findById(professorId)
-            .orElseThrow(() -> new IllegalArgumentException("Professor não encontrado"));
-
-        String token = professor.getWebhookToken();
-        Map<String, String> urls = new LinkedHashMap<>();
-        urls.put("PIX (padrão Bacen)", webhookBaseUrl + "/webhook/" + token + "/pix_generico");
-        urls.put("Asaas",              webhookBaseUrl + "/webhook/" + token + "/asaas");
-        urls.put("Inter",              webhookBaseUrl + "/webhook/" + token + "/inter");
-        urls.put("Sicoob",             webhookBaseUrl + "/webhook/" + token + "/sicoob");
-        urls.put("Efi/Gerencianet",    webhookBaseUrl + "/webhook/" + token + "/efipay");
-        urls.put("Outro banco",        webhookBaseUrl + "/webhook/" + token + "/generico");
-
-        return new WebhookConfiguracaoResponse(token, urls);
-    }
 
     public List<NotificacaoResponse> listar(String professorId, StatusNotificacao status) {
         List<NotificacaoPagamento> lista = status != null
