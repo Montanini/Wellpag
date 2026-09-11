@@ -13,7 +13,7 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
 
 /**
  * Roteamento por Path predicate: um bean por servico, encaminhando o prefixo
- * de rota correspondente para cada um dos 7 microsservicos ja extraidos do
+ * de rota correspondente para cada um dos microsservicos ja extraidos do
  * monolito. /aluno/portal/** agora aponta para aluno-service — o portal do
  * aluno foi migrado do monolito (que ate entao orquestrava a leitura direto
  * no Mongo) para aluno-service, que orquestra via REST chamando
@@ -26,6 +26,10 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
  * ambiente orquestrado). Quando webhook-service for extraido do monolito no
  * futuro, uma rota nova (/webhook/** -> webhook-service) precisa ser
  * adicionada aqui, seguindo o mesmo padrao dos demais beans deste arquivo.
+ *
+ * A rota /professor/banco/** (pagamento-service, integracao Banco Inter) foi
+ * removida junto com o modulo inteiro — a integracao com o Banco Inter foi
+ * descontinuada por completo (nao so o fluxo de webhook).
  *
  * O gateway e' um proxy reverso puro: nao valida JWT (cada servico ja valida
  * o seu proprio token de forma independente - ver JwtAuthFilter/JwtService em
@@ -75,14 +79,6 @@ public class RouteConfig {
         return route("financeiro_service")
             .route(path("/professor/mensalidades/**"), http())
             .before(uri(properties.getServices().getFinanceiro()))
-            .build();
-    }
-
-    @Bean
-    public RouterFunction<ServerResponse> pagamentoServiceRoute() {
-        return route("pagamento_service")
-            .route(path("/professor/banco/**"), http())
-            .before(uri(properties.getServices().getPagamento()))
             .build();
     }
 

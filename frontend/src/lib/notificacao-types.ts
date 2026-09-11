@@ -15,10 +15,3 @@ export interface NotificacaoResponse {
   alunoId?: string;
   recebidaEm: string;
 }
-
-export interface ConfiguracaoInterResponse {
-  clientId?: string;
-  chavePix?: string;
-  temCertificado: boolean;
-  temChavePrivada: boolean;
-}
