@@ -1,9 +1,8 @@
 # Ambiente de desenvolvimento local
 # Valores fake, seguro versionar — nenhuma credencial real aqui.
 # Mesmo banco (wellpag_dev) e mesmo segredo JWT do monolito (backend/application-dev.yml)
-# nesta fase transitoria: mesmas collections "notificacoes_pagamento",
-# "configuracoes_whatsapp" e "lembretes_enviados", e tokens emitidos pelo
-# monolito continuam validos aqui.
+# nesta fase transitoria: mesmas collections "configuracoes_whatsapp" e
+# "lembretes_enviados", e tokens emitidos pelo monolito continuam validos aqui.
 
 spring:
   data:
@@ -20,8 +19,6 @@ wellpag:
     evolution-api-url: ${EVOLUTION_API_URL:http://localhost:8081}
     evolution-api-key: ${EVOLUTION_API_KEY:wellpag-local-key}
     scheduler-cron: 0 0 9 * * *
-  financeiro-service:
-    base-url: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
 
 logging:
   level:

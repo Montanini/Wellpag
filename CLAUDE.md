@@ -80,11 +80,11 @@ Single entry point for the frontend is the gateway on **8080** — `NEXT_PUBLIC_
 | `aluno-service` | 8093 | `POST /alunos/cadastro`, `/professor/alunos/**`, `/aluno/portal/**` | `backend/aluno-service/` |
 | `agenda-service` | 8094 | `/professor/horarios/**` (+ internal `GET /portal/horarios`, called by `aluno-service`) | `backend/agenda-service/` |
 | `financeiro-service` | 8095 | `/professor/mensalidades/**` (+ internal `GET /portal/mensalidades`, `GET /portal/mensalidades/{mes}`, called by `aluno-service`) | `backend/financeiro-service/` |
-| `notificacao-service` | 8097 | `/professor/notificacoes/**`, `/professor/whatsapp/**` | `backend/notificacao-service/` |
+| `notificacao-service` | 8097 | `/professor/whatsapp/**` | `backend/notificacao-service/` |
 
-Port 8096 (`pagamento-service`) is retired — that module was removed entirely along with the Banco Inter integration (see "Architecture status"). Nothing occupies that port anymore.
+Port 8096 (`pagamento-service`) is retired — that module was removed entirely along with the Banco Inter integration (see "Architecture status"). Nothing occupies that port anymore. `notificacao-service` also no longer serves `/professor/notificacoes/**` (payment notifications received via bank webhook, manually linked by the professor to a fee) — that feature depended entirely on the bank webhook flow, and once that was removed (see "Architecture status"), the notification list had no data source left (always empty) and was discontinued too. `notificacao-service` today is WhatsApp reminders only.
 
-`aluno-service`'s `/aluno/portal/**` orchestrates rather than owning all the data itself: `GET /perfil` is 100% local (aluno-service owns `Aluno`), but `GET /horarios` calls agenda-service's `GET /portal/horarios`, and `GET /mensalidades`, `GET /mensalidades/{mes}` and `GET /relatorio` call financeiro-service's `GET /portal/mensalidades[/{mes}]` (relatorio aggregates that same response locally) — all via `RestClient`, forwarding the caller's `Authorization` header unchanged (same pattern as `notificacao-service`'s `FinanceiroServiceClient`, see `backend/aluno-service/src/main/java/com/wellpag/aluno/client/`). The two `/portal/**` endpoints on agenda-service/financeiro-service are protected by `hasRole("ALUNO")`, same as the `aluno-service` ones — they're not meant to be called by anything but `aluno-service`, but nothing currently enforces that beyond role-based JWT auth.
+`aluno-service`'s `/aluno/portal/**` orchestrates rather than owning all the data itself: `GET /perfil` is 100% local (aluno-service owns `Aluno`), but `GET /horarios` calls agenda-service's `GET /portal/horarios`, and `GET /mensalidades`, `GET /mensalidades/{mes}` and `GET /relatorio` call financeiro-service's `GET /portal/mensalidades[/{mes}]` (relatorio aggregates that same response locally) — all via `RestClient`, forwarding the caller's `Authorization` header unchanged (same pattern first established for `notificacao-service`'s own inter-service client, since removed along with the payment-notification feature). The two `/portal/**` endpoints on agenda-service/financeiro-service are protected by `hasRole("ALUNO")`, same as the `aluno-service` ones — they're not meant to be called by anything but `aluno-service`, but nothing currently enforces that beyond role-based JWT auth.
 
 All 7 modules still point at the same physical MongoDB (`wellpag_dev` in dev, `wellpag_prod` in production — see "Production Deployment") in this transitional phase — logical database-per-service, not physical isolation yet. Running everything locally without Docker: start each module with its own `mvn spring-boot:run -Dspring-boot.run.profiles=dev` (each has its own `pom.xml`, run from inside `backend/<servico>/`); `docker-compose up -d` (root) runs the same set as containers, wired to each other by service hostname (e.g. `http://financeiro-service:8095`) instead of `localhost`.
 
@@ -136,7 +136,7 @@ Next.js App Router with two main role-based areas enforced by `middleware.ts`:
 - `/alunos/[id]` — Student details/edit
 - `/horarios` — Schedule management
 - `/relatorios` — Financial reports
-- `/notificacoes`, `/whatsapp` — Notification and WhatsApp API config
+- `/whatsapp` — WhatsApp connection and reminder config
 
 **Student (ALUNO role):**
 - `/portal`, `/portal/horarios`, `/portal/historico`, `/portal/relatorio`
@@ -157,12 +157,14 @@ The system was split out of an original monolith into independently deployable s
 | `aluno-service` | Student CRUD, self-registration, student self-service portal (orchestrated via REST against agenda-service/financeiro-service) | `AlunoController/Service`, `Aluno`, `AlunoPortalController/Service` |
 | `agenda-service` | Class schedules (fixed/one-off) | `HorarioController/Service`, `Horario` |
 | `financeiro-service` | Monthly fees and their status (`A_PAGAR`/`PAGO`/`ATRASADO`) | `MensalidadeController/Service`, `Mensalidade` |
-| `notificacao-service` | WhatsApp reminders + payment notifications | `NotificacaoController/Service`, `WhatsAppController/Service`, `LembreteScheduler`, `EvolutionApiClient` |
+| `notificacao-service` | WhatsApp reminders (payment notifications via bank webhook were also extracted here originally, later discontinued — see note below) | `WhatsAppController/Service`, `LembreteScheduler`, `EvolutionApiClient` |
 | `relatorio-service` | Dashboard and financial reports (read-only aggregation) | `DashboardController/Service`, `RelatorioController/Service` |
 
 > `relatorio-service`'s dashboard also reads `Horario` (agenda-service), not just aluno/financeiro data — the table above only lists controller/service origin, not every read dependency, and that omission is a real source of coupling worth calling out explicitly.
 >
 > Bank payment webhooks (Inter, Asaas, generic PIX — receiving the bank's callback, validating it, parsing it into a normalized payload, then matching by CPF and settling a `Mensalidade`) were the one flow **never extracted**. The owner decided to discontinue that functionality rather than build it out as its own `webhook-service`, and the monolith that hosted it was deleted from the repo entirely. There is no `/webhook/**` route anywhere anymore.
+>
+> `notificacao-service` originally also owned the professor-facing half of that flow: `NotificacaoPagamento` records that a (never-built) `webhook-service` would have created, which the professor could review and manually link to a student/fee (`NotificacaoController/Service`, `/professor/notificacoes/**`). Since nothing ever fed that collection (the webhook side was never extracted), the list was permanently empty and the feature was discontinued — removed along with `BancoIntegracao`, `NotificacaoPagamento`, `StatusNotificacao`, and the inter-service client it used to confirm payments against `financeiro-service`. `notificacao-service` now exists solely for WhatsApp reminders.
 >
 > `pagamento-service` **was** extracted (it owned per-bank integration credentials — Inter OAuth2 + mTLS config, `BancoController`, `BancoInterService`, `BancoConfiguracaoInter`, `BancoIntegracao`) but has since been removed from the repository entirely, along with its frontend credential-configuration UI and its gateway route (`/professor/banco/**`). The owner discontinued the Banco Inter integration altogether, not just the webhook registration flow within it (which had already been found dead and removed earlier). If bank payment integration is wanted again in the future, it needs to be designed and built fresh (recoverable from git history before removal as a reference, not as a resumable branch).
 
