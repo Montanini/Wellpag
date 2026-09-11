@@ -1,14 +1,11 @@
 # Docker Compose (raiz) — .env real com segredos de producao para
 # docker-compose.prod.yml, nunca commitar (usar .env.example como referencia)
 .env
+.env*
 
-# Backend
-backend/target/
-backend/.env
-
-# Microservices (services/*/target/, one per extracted service)
-services/*/target/
-services/*/.env
+# Backend (one target/.env per microservice under backend/<servico>/)
+backend/*/target/
+backend/*/.env
 
 # Frontend
 frontend/.next/
@@ -18,3 +15,7 @@ frontend/.env.local
 # OS
 .DS_Store
 Thumbs.db
+
+# Auditoria de segurança — venv local usado só para gerar o PDF (docs/security-audit/gerar_relatorio.py)
+docs/security-audit/venv/
+docs/security-audit/_preview/

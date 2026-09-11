@@ -28,7 +28,7 @@ services:
 
   relatorio-service:
     build:
-      context: ./services/relatorio-service
+      context: ./backend/relatorio-service
     container_name: wellpag-relatorio-service
     ports:
       - "8091:8091"
@@ -40,7 +40,7 @@ services:
 
   auth-service:
     build:
-      context: ./services/auth-service
+      context: ./backend/auth-service
     container_name: wellpag-auth-service
     ports:
       - "8092:8092"
@@ -56,7 +56,7 @@ services:
 
   aluno-service:
     build:
-      context: ./services/aluno-service
+      context: ./backend/aluno-service
     container_name: wellpag-aluno-service
     ports:
       - "8093:8093"
@@ -72,7 +72,7 @@ services:
 
   agenda-service:
     build:
-      context: ./services/agenda-service
+      context: ./backend/agenda-service
     container_name: wellpag-agenda-service
     ports:
       - "8094:8094"
@@ -84,7 +84,7 @@ services:
 
   financeiro-service:
     build:
-      context: ./services/financeiro-service
+      context: ./backend/financeiro-service
     container_name: wellpag-financeiro-service
     ports:
       - "8095:8095"
@@ -96,7 +96,7 @@ services:
 
   pagamento-service:
     build:
-      context: ./services/pagamento-service
+      context: ./backend/pagamento-service
     container_name: wellpag-pagamento-service
     ports:
       - "8096:8096"
@@ -108,7 +108,7 @@ services:
 
   notificacao-service:
     build:
-      context: ./services/notificacao-service
+      context: ./backend/notificacao-service
     container_name: wellpag-notificacao-service
     ports:
       - "8097:8097"
@@ -122,7 +122,7 @@ services:
 
   gateway:
     build:
-      context: ./services/gateway
+      context: ./backend/gateway
     container_name: wellpag-gateway
     ports:
       - "8080:8080"

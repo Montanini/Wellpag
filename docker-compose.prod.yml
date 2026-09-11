@@ -14,9 +14,11 @@ version: '3.8'
 # este arquivo sozinho ve a configuracao de producao completa de cada
 # servico, sem precisar cruzar com docker-compose.yml.
 #
-# backend/ (monolito) nao entra neste overlay: o dono decidiu nao usar
-# webhook por enquanto e desligar o monolito de producao de vez. Ele nunca
-# foi containerizado nesta migracao.
+# O monolito original foi removido do repositorio (o dono decidiu nao
+# extrair o fluxo de webhook bancario para um microsservico proprio e
+# descontinuar essa funcionalidade). "backend/" agora e' apenas o diretorio
+# que agrupa os 7 microsservicos + gateway (ver CLAUDE.md); nao existe mais
+# um modulo "backend" isolado neste overlay.
 #
 # Portas: em dev, cada servico publica sua porta no host pra facilitar teste
 # direto. Em producao, so o "gateway" (8080) deve ficar acessivel de fora —
