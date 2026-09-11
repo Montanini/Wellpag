@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout, getUser } from "@/lib/auth";
+import { logout, getUser, AuthUser } from "@/lib/auth";
 import { api } from "@/lib/api";
 
 const links = [
@@ -18,8 +18,16 @@ const links = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const user = getUser();
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [pendentes, setPendentes] = useState(0);
+
+  useEffect(() => {
+    // getUser() lê localStorage, que so existe no cliente — chamar aqui (e nao
+    // direto no corpo do componente) evita divergencia entre o HTML renderizado
+    // no servidor (sem usuario) e a primeira renderizacao no cliente
+    // (hydration mismatch).
+    setUser(getUser());
+  }, []);
 
   useEffect(() => {
     api.get<{ id: string; status: string }[]>("/professor/notificacoes?status=PENDENTE")

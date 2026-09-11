@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { logout, getUser } from "@/lib/auth";
+import { useEffect, useState } from "react";
+import { logout, getUser, AuthUser } from "@/lib/auth";
 
 const links = [
   { href: "/portal",            label: "Início"       },
@@ -13,7 +14,15 @@ const links = [
 
 export function PortalNavbar() {
   const pathname = usePathname();
-  const user = getUser();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    // getUser() lê localStorage, que so existe no cliente — chamar aqui (e nao
+    // direto no corpo do componente) evita divergencia entre o HTML renderizado
+    // no servidor (sem usuario) e a primeira renderizacao no cliente
+    // (hydration mismatch).
+    setUser(getUser());
+  }, []);
 
   return (
     <nav className="bg-white border-b border-gray-200">

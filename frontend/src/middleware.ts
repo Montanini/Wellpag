@@ -42,5 +42,9 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Exclui tambem arquivos estaticos de public/ (ex.: logo.png, icon.png) —
+  // sem isso, o otimizador de imagem do Next (/_next/image) busca o arquivo
+  // internamente sem o cookie de sessao, o middleware redireciona pra /login,
+  // e o otimizador recebe HTML em vez do PNG ("isn't a valid image").
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)"],
 };

@@ -20,6 +20,7 @@ export default function AlunoDetalhePage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [alterandoStatusId, setAlterandoStatusId] = useState<string | null>(null);
+  const [gerandoMensalidade, setGerandoMensalidade] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -79,6 +80,19 @@ export default function AlunoDetalhePage() {
       setMensalidades((prev) => prev.map((m) => m.id === mensalidadeId ? atualizada : m));
     } catch (err: any) {
       alert(err.message);
+    }
+  }
+
+  async function gerarMensalidadeDoMes() {
+    setGerandoMensalidade(true);
+    try {
+      const mesAtual = new Date().toISOString().slice(0, 7); // yyyy-MM
+      const nova = await api.get<Mensalidade>(`/professor/mensalidades/aluno/${id}/mes/${mesAtual}`);
+      setMensalidades((prev) => prev.some((m) => m.id === nova.id) ? prev : [nova, ...prev]);
+    } catch (err: any) {
+      setErro(err.message);
+    } finally {
+      setGerandoMensalidade(false);
     }
   }
 
@@ -197,7 +211,18 @@ export default function AlunoDetalhePage() {
           <h2 className="font-semibold text-gray-800 mb-4">Mensalidades</h2>
 
           {mensalidades.length === 0 ? (
-            <p className="text-gray-400 text-sm">Nenhuma mensalidade registrada.</p>
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm mb-3">
+                Nenhuma mensalidade registrada ainda — a geração automática só roda no dia 1º de cada mês.
+              </p>
+              <button
+                onClick={gerarMensalidadeDoMes}
+                disabled={gerandoMensalidade}
+                className="text-sm text-brand-600 border border-brand-200 bg-brand-50 hover:bg-brand-100 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+              >
+                {gerandoMensalidade ? "Gerando..." : "Gerar mensalidade deste mês"}
+              </button>
+            </div>
           ) : (
             <div className="space-y-2">
               {mensalidades.map((m) => (
