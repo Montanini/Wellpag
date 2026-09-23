@@ -192,6 +192,10 @@ There is no cloud deployment target — the app runs on the owner's own machine 
 
 Issues live as GitHub Issues (`github.com/Montanini/Wellpag`), managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
+### Triage labels
+
+Default 5-role vocabulary, label strings equal to role names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
 ### Domain docs
 
 Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root (not yet created — read lazily/silently when present, per `docs/agents/domain.md`; the multi-service split under `backend/` doesn't get its own per-service `CONTEXT.md`). See `docs/agents/domain.md`.
