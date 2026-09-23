@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: cobranca-pix-service
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+server:
+  port: 8098
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui
+
+wellpag:
+  jwt:
+    secret: ${JWT_SECRET}
+  crypto:
+    # Chave AES-256 (32 bytes) codificada em base64, usada pelo AesGcmStringConverter
+    # para cifrar em repouso campos sensiveis (accessToken/refreshToken de
+    # ContaMercadoPago, quando esse modelo existir — ver ticket #35+).
+    token-encryption-key: ${TOKEN_ENCRYPTION_KEY}
+  mercadopago:
+    # Credenciais da aplicacao OAuth do Mercado Pago (Mercado Pago Connect).
+    # Sem default em NENHUM profile, nem dev — nao da pra "fakear" credencial
+    # real de um provedor OAuth terceiro (mesmo padrao ja usado por
+    # GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET em auth-service). Nao lidas por
+    # nenhum @ConfigurationProperties ainda nesta issue de scaffold — apenas
+    # presentes no skeleton para tickets futuros (#35+) nao precisarem tocar no YAML.
+    client-id: ${MP_CLIENT_ID}
+    client-secret: ${MP_CLIENT_SECRET}
+    redirect-uri: ${MP_REDIRECT_URI}
+    # Segredo usado para validar a assinatura HMAC do webhook do Mercado Pago
+    # (POST /webhooks/mercadopago, rota publica — ver SecurityConfig).
+    webhook-secret: ${MP_WEBHOOK_SECRET}
+    # Segredo dedicado (nao reaproveita wellpag.jwt.secret) usado para assinar
+    # o parametro "state" do fluxo OAuth Connect (GET /professor/cobranca-pix/connect).
+    oauth-state-secret: ${MP_OAUTH_STATE_SECRET}

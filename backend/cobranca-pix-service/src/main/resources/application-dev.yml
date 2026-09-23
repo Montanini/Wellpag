@@ -1,0 +1,36 @@
+# Ambiente de desenvolvimento local
+# Valores fake, seguro versionar — nenhuma credencial real aqui.
+# Mesmo banco (wellpag_dev) e mesmo segredo JWT dos demais servicos nesta fase
+# transitoria (ver CLAUDE.md raiz, "Services & Ports"/"Environment Variables").
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/wellpag_dev
+
+server:
+  port: 8098
+
+wellpag:
+  jwt:
+    secret: dev-fake-secret-nao-usar-em-producao-min-256-bits-0000000000000000
+  crypto:
+    # Chave AES-256 (32 bytes) valida, gerada via `openssl rand -base64 32`.
+    # NAO USAR EM PRODUCAO — fake, seguro versionar, so serve pra dev local.
+    token-encryption-key: ZIpUV9PpmD/BgRb5s0MUPY5/CCaXKFGKMcOLEkmgkjg=
+  mercadopago:
+    # client-id/client-secret/redirect-uri NAO tem default nem aqui em dev —
+    # credencial real de app OAuth do Mercado Pago, precisa ser exportada
+    # manualmente mesmo em desenvolvimento (mesmo padrao de GOOGLE_CLIENT_ID
+    # em auth-service). Nada le essas props ainda nesta issue de scaffold.
+    client-id: ${MP_CLIENT_ID}
+    client-secret: ${MP_CLIENT_SECRET}
+    redirect-uri: ${MP_REDIRECT_URI}
+    # NAO USAR EM PRODUCAO — fakes, seguros versionar, so servem pra dev local.
+    webhook-secret: dpSj5c/s235o2ccLn2KMmjCHijBEHd7K
+    oauth-state-secret: dhyrRZFd+FnrLEoFtHB+VgmGDp4eCxRI
+
+logging:
+  level:
+    root: INFO
+    com.wellpag.cobrancapix: DEBUG
