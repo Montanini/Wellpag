@@ -1,0 +1,18 @@
+# Ambiente de produção — roda na máquina do professor com IP fixo.
+# Nenhum valor real hardcoded: todas as credenciais vêm de variáveis de ambiente.
+# O processo falha ao subir se uma delas estiver ausente (comportamento desejado) —
+# ver spring.data.mongodb.uri, wellpag.jwt.secret e wellpag.crypto.token-encryption-key
+# em application.yml (base), além de wellpag.mercadopago.* abaixo.
+
+wellpag:
+  mercadopago:
+    client-id: ${MP_CLIENT_ID}
+    client-secret: ${MP_CLIENT_SECRET}
+    redirect-uri: ${MP_REDIRECT_URI}
+    webhook-secret: ${MP_WEBHOOK_SECRET}
+    oauth-state-secret: ${MP_OAUTH_STATE_SECRET}
+
+logging:
+  level:
+    root: WARN
+    com.wellpag: INFO
