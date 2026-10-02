@@ -37,6 +37,13 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
  * orfa (lista sempre vazia) e foi descontinuada. notificacao-service continua
  * vivo so pela mensageria WhatsApp (/professor/whatsapp/**).
  *
+ * /professor/cobranca-pix/** e /cobranca-pix/oauth/callback (issue #35) roteiam
+ * para cobranca-pix-service (8o modulo, criado do zero na issue #33/scaffold
+ * #34 — nao extraido do monolito). /cobranca-pix/oauth/callback e publico (o
+ * navegador do professor bate nela direto apos o redirect do Mercado Pago) —
+ * o gateway so encaminha, quem decide isso e o SecurityConfig do proprio
+ * cobranca-pix-service, nao o gateway.
+ *
  * O gateway e' um proxy reverso puro: nao valida JWT (cada servico ja valida
  * o seu proprio token de forma independente - ver JwtAuthFilter/JwtService em
  * cada modulo) e nao altera headers - HandlerFunctions.http() repassa a
@@ -93,6 +100,14 @@ public class RouteConfig {
         return route("notificacao_service")
             .route(path("/professor/whatsapp/**"), http())
             .before(uri(properties.getServices().getNotificacao()))
+            .build();
+    }
+
+    @Bean
+    public RouterFunction<ServerResponse> cobrancaPixServiceRoute() {
+        return route("cobranca_pix_service")
+            .route(path("/professor/cobranca-pix/**", "/cobranca-pix/oauth/callback"), http())
+            .before(uri(properties.getServices().getCobrancaPix()))
             .build();
     }
 }

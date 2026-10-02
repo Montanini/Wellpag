@@ -13,3 +13,4 @@ wellpag:
     agenda: ${AGENDA_SERVICE_URL:http://localhost:8094}
     financeiro: ${FINANCEIRO_SERVICE_URL:http://localhost:8095}
     notificacao: ${NOTIFICACAO_SERVICE_URL:http://localhost:8097}
+    cobrancaPix: ${COBRANCA_PIX_SERVICE_URL:http://localhost:8098}

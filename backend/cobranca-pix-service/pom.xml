@@ -20,6 +20,12 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.5</jjwt.version>
+        <!-- Override da versao gerenciada pelo BOM de spring-boot-starter-parent
+             (1.21.3 no Spring Boot 3.5.5) para o patch mais recente da serie
+             1.21.x — tentativa de contornar uma incompatibilidade observada
+             entre docker-java (usado pelo Testcontainers) e uma versao muito
+             recente do Docker Desktop local. -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -68,10 +74,22 @@
         </dependency>
 
         <!-- Retry com backoff exponencial para chamadas HTTP ao Mercado Pago
-             (MercadoPagoClient, a ser implementado em ticket futuro) -->
+             (MercadoPagoClient.trocarCodePorToken, issue #35) -->
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
+        </dependency>
+
+        <!-- @EnableRetry/@Retryable usam proxy AOP (Spring AOP + AspectJ) para
+             interceptar as chamadas e aplicar a retentativa — spring-retry por
+             si so NAO traz aspectjweaver transitivamente; sem este starter o
+             contexto falha ao subir com
+             NoClassDefFoundError: org/aspectj/lang/annotation/Pointcut
+             (erro real encontrado e corrigido durante o desenvolvimento desta
+             issue, via o teste de integracao do controller). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
         <!-- Bean Validation (Hibernate Validator) — usado por MercadoPagoProperties
@@ -109,6 +127,21 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Testcontainers: MongoDB real e hermetico para o primeiro teste de
+             integracao do projeto (CobrancaPixOAuthControllerIT) — versao
+             gerenciada pelo BOM de spring-boot-starter-parent (testcontainers.version,
+             1.21.3 nesta versao do Spring Boot), nao precisa ser pinada aqui. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -123,6 +156,30 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- MercadoPagoProperties (ativa em todo profile desde a issue #35)
+                         e AesGcmStringConverter/JwtService exigem estas variaveis para o
+                         contexto Spring subir, inclusive so para carregar o
+                         ApplicationContext em teste. Definidas aqui (em vez de exigir que
+                         quem roda `mvn clean verify` as exporte manualmente no shell) para
+                         a suite de testes ser autossuficiente e nao depender de estado do
+                         shell de quem roda — valores obviamente fake, seguros de versionar
+                         (nunca parecidos com segredo real). Isso nao muda o comportamento
+                         de dev/prod normais (mvn spring-boot:run), so a execucao de teste. -->
+                    <environmentVariables>
+                        <MP_CLIENT_ID>test-fake-mp-client-id</MP_CLIENT_ID>
+                        <MP_CLIENT_SECRET>test-fake-mp-client-secret</MP_CLIENT_SECRET>
+                        <MP_REDIRECT_URI>http://localhost:8098/cobranca-pix/oauth/callback</MP_REDIRECT_URI>
+                        <MP_WEBHOOK_SECRET>test-fake-mp-webhook-secret</MP_WEBHOOK_SECRET>
+                        <MP_OAUTH_STATE_SECRET>test-fake-mp-oauth-state-secret-min-256-bits-000000</MP_OAUTH_STATE_SECRET>
+                        <TOKEN_ENCRYPTION_KEY>ZIpUV9PpmD/BgRb5s0MUPY5/CCaXKFGKMcOLEkmgkjg=</TOKEN_ENCRYPTION_KEY>
+                        <JWT_SECRET>test-fake-jwt-secret-nao-usar-em-producao-min-256-bits-0000000</JWT_SECRET>
+                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>
