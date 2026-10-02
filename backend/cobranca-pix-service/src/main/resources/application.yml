@@ -27,15 +27,34 @@ wellpag:
     # Credenciais da aplicacao OAuth do Mercado Pago (Mercado Pago Connect).
     # Sem default em NENHUM profile, nem dev — nao da pra "fakear" credencial
     # real de um provedor OAuth terceiro (mesmo padrao ja usado por
-    # GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET em auth-service). Nao lidas por
-    # nenhum @ConfigurationProperties ainda nesta issue de scaffold — apenas
-    # presentes no skeleton para tickets futuros (#35+) nao precisarem tocar no YAML.
+    # GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET em auth-service). Lidas por
+    # MercadoPagoProperties (@ConfigurationProperties, ativo em todo profile
+    # desde a issue #35 — ver Javadoc da classe) e usadas por
+    # CobrancaPixOAuthService (URL de autorizacao) e MercadoPagoClient (troca
+    # de code por token).
     client-id: ${MP_CLIENT_ID}
     client-secret: ${MP_CLIENT_SECRET}
     redirect-uri: ${MP_REDIRECT_URI}
     # Segredo usado para validar a assinatura HMAC do webhook do Mercado Pago
-    # (POST /webhooks/mercadopago, rota publica — ver SecurityConfig).
+    # (POST /webhooks/mercadopago, rota publica — ver SecurityConfig). Ainda
+    # nao lido por nenhum codigo — o processamento do webhook em si e ticket
+    # futuro (#35 so cobre OAuth Connect).
     webhook-secret: ${MP_WEBHOOK_SECRET}
     # Segredo dedicado (nao reaproveita wellpag.jwt.secret) usado para assinar
-    # o parametro "state" do fluxo OAuth Connect (GET /professor/cobranca-pix/connect).
+    # e validar o parametro "state" do fluxo OAuth Connect — ver OAuthStateService.
     oauth-state-secret: ${MP_OAUTH_STATE_SECRET}
+    # Raiz da API real do Mercado Pago, usada por MercadoPagoClient. Nao e
+    # segredo (URL publica e estavel), entao tem default aqui mesmo — override
+    # via MP_API_BASE_URL so serve para apontar para um mock/sandbox em teste.
+    api-base-url: ${MP_API_BASE_URL:https://api.mercadopago.com}
+
+  cobranca-pix:
+    # Para onde o navegador do professor e redirecionado ao final do callback
+    # OAuth (GET /cobranca-pix/oauth/callback) — sucesso ou erro. Nao sao
+    # segredos, entao tem default (apontando para localhost:3000) em todo
+    # profile, inclusive prod; overrides via env var no deploy real. O
+    # frontend ainda nao tem uma pagina dedicada para nenhuma das duas rotas —
+    # isso e escopo de um ticket futuro, o formato aqui so precisa ser
+    # plausivel para quando essa pagina existir.
+    oauth-success-redirect-url: ${MP_OAUTH_SUCCESS_REDIRECT_URL:http://localhost:3000/dashboard?mercadopago=connected}
+    oauth-error-redirect-url: ${MP_OAUTH_ERROR_REDIRECT_URL:http://localhost:3000/dashboard?mercadopago=error}

@@ -22,7 +22,8 @@ wellpag:
     # client-id/client-secret/redirect-uri NAO tem default nem aqui em dev —
     # credencial real de app OAuth do Mercado Pago, precisa ser exportada
     # manualmente mesmo em desenvolvimento (mesmo padrao de GOOGLE_CLIENT_ID
-    # em auth-service). Nada le essas props ainda nesta issue de scaffold.
+    # em auth-service). Exigido desde a issue #35 em TODO profile — exporte
+    # qualquer valor fake nao-vazio, ex.: MP_CLIENT_ID=dev-fake-client-id.
     client-id: ${MP_CLIENT_ID}
     client-secret: ${MP_CLIENT_SECRET}
     redirect-uri: ${MP_REDIRECT_URI}

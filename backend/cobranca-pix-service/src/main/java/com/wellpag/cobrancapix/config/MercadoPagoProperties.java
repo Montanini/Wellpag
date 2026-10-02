@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -35,24 +34,25 @@ import org.springframework.validation.annotation.Validated;
  * Bean Validation logo apos o bind, e uma violacao derruba o contexto com
  * {@code ConfigurationPropertiesBindException}.
  * <p>
- * {@code @Profile("prod")} e proposital: MP_CLIENT_ID/MP_CLIENT_SECRET/
- * MP_REDIRECT_URI nao tem default em NENHUM profile (nao da pra fakear
- * credencial real de app OAuth de terceiro — mesmo padrao ja adotado, ainda
- * que nao validado, por GOOGLE_CLIENT_ID em auth-service), mas o fail-fast
- * em si so e' exigido (issue #34) para o profile prod — exigir as 3 variaveis
- * tambem em dev quebraria `mvn clean verify`/`spring-boot:run -Dspring-boot.run.profiles=dev`
- * para qualquer um que nao tenha uma app Mercado Pago configurada, sem
- * ganho nenhum nesta fase de scaffold (nenhum controller le esses campos
- * ainda). Isso sera revisitado quando o fluxo OAuth Connect (issue #35+)
- * precisar de credenciais reais tambem em dev.
+ * Ativa em TODOS os profiles (correcao feita na issue #35, ver historico de
+ * commits): a issue #34 (scaffold puro) tinha isto como {@code @Profile("prod")}
+ * porque nenhum controller lia o bean ainda, e exigir as 3 variaveis tambem em
+ * dev teria bloqueado `mvn clean verify`/`spring-boot:run -Dspring-boot.run.profiles=dev`
+ * sem ganho nenhum naquela fase. A partir da issue #35, o fluxo OAuth Connect
+ * (GET /professor/cobranca-pix/connect + GET /cobranca-pix/oauth/callback) le
+ * clientId/clientSecret/redirectUri de verdade para montar a URL de autorizacao
+ * e trocar o code por token — entao o bean precisa estar ativo (e validado) em
+ * todo profile, exatamente como GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET ja
+ * funcionam em auth-service: MP_CLIENT_ID/MP_CLIENT_SECRET/MP_REDIRECT_URI nao
+ * tem default em NENHUM profile (nem dev) — quem roda localmente precisa
+ * exportar manualmente qualquer valor fake nao-vazio (ex.: `MP_CLIENT_ID=dev-fake-client-id`).
  * <p>
- * Nao ha logica de negocio aqui ainda — clientId/clientSecret/redirectUri
- * serao lidos pelo fluxo OAuth Connect implementado em issue #35+.
+ * clientId/clientSecret/redirectUri sao lidos por OAuthStateService (redirectUri
+ * na URL de autorizacao) e por MercadoPagoClient (troca do code por token).
  */
 @Getter
 @Setter
 @Component
-@Profile("prod")
 @ConfigurationProperties(prefix = "wellpag.mercadopago")
 @Validated
 public class MercadoPagoProperties {

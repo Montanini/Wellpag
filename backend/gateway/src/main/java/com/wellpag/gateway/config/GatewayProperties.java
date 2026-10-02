@@ -31,5 +31,6 @@ public class GatewayProperties {
         private String agenda;
         private String financeiro;
         private String notificacao;
+        private String cobrancaPix;
     }
 }
